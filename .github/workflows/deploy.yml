@@ -3,8 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main
-
+      - live
 permissions:
   id-token: write
   contents: read
