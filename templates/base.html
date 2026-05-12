@@ -1,0 +1,53 @@
+{%- extends 'layouts/base.html' -%}
+
+{%- from "components/cookie-banner/macro.html" import tnaCookieBanner -%}
+{%- from "components/footer/macro.html" import tnaFooter -%}
+{%- from "components/header/macro.html" import tnaHeader -%}
+
+{%- set siteTitle = 'Metadata Store - The National Archives' -%}
+{%- set theme = 'system' -%}
+{%- set themeAccent = 'blue' -%}
+{%- set htmlAttributes = {
+'data-tna-cookies-domain': '.nationalarchives.gov.uk'
+} -%}
+
+{% block headIcons %}
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/favicon.ico" type="image/x-icon">
+{% endblock %}
+
+{% block head %}
+    <meta name="description" content="An online database of digital file formats">
+    <meta name="robots" content="none">
+{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="/static/all.css" media="screen,print">
+    <link rel="stylesheet" href="/static/main.css" media="screen,print">
+    <link rel="stylesheet" href="/static/font-awesome.css">
+    <link rel="preconnect" href="https://use.typekit.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://use.typekit.net/kaq6qqh.css" media="screen,print">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400..700&family=Roboto+Mono:wght@400..500&display=swap" media="screen,print">
+    <link rel="stylesheet" href="https://www.nationalarchives.gov.uk/enrichment/css/logo-adornments.css" media="screen">
+    <link rel="stylesheet" href="/static/print.css" media="print">
+    <link rel="stylesheet" href="/static/ie.css" media="all and (-ms-high-contrast: none), (-ms-high-contrast: active)">
+{% endblock %}
+
+{% block cookies %}
+    {{ tnaCookieBanner({
+            'cookiesUrl': 'https://www.nationalarchives.gov.uk/cookies/'
+            }) | indent(6) }}
+{% endblock %}
+
+{% block content %}
+
+    {{ content | safe }}
+{% endblock %}
+
+
+{% block bodyEnd %}
+    <script src="/static/all.js"></script>
+    <script src="/static/site.js"></script>
+    <script type="module" src="https://www.nationalarchives.gov.uk/enrichment/js/logo-adornments.js" defer></script>
+{% endblock %}

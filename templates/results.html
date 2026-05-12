@@ -1,0 +1,90 @@
+{%- extends 'base.html' -%}
+
+{%- from "components/breadcrumbs/macro.html" import tnaBreadcrumbs -%}
+{%- from "components/card/macro.html" import tnaCard -%}
+{%- from "components/search-field/macro.html" import tnaSearchField -%}
+
+{%- set pageTitle = 'Search results' -%}
+
+{% block skipLink %}
+    {% if data|length > 0 %}
+        {{ tnaSkipLink({
+                'href': 'search-results',
+                'text': 'Skip to search results'
+                }) }}
+    {% endif %}
+    {{ super() }}
+{% endblock %}
+
+{% block beforeContent %}
+    <div class="tna-!--padding-vertical-s tna-background-accent-light">
+        <div class="tna-container">
+            <div class="tna-column tna-column--full">
+                {{ tnaBreadcrumbs({
+                        'items': [
+                        {
+                        'text': 'Home',
+                        'href': '/'
+                        }
+                        ]
+                        }) | indent(6) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="tna-!--padding-top-xs tna-!--padding-bottom-m tna-background-accent-light">
+        <div class="tna-container">
+            <div class="tna-column tna-column--width-2-3 tna-column--width-5-6-medium tna-column--full-small tna-column--full-tiny">
+                <form action="/results" method="get" novalidate>
+                    {{ tnaSearchField({
+                            'label': 'Search Metadata Store',
+                            'headingLevel': 1,
+                            'headingSize': 'l',
+                            'id': 'search',
+                            'name': 'q',
+                            'value': key if key else '',
+                            'hint': 'Enter a file format name or file extension'
+                            }) }}
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="tna-container tna-section">
+        <div class="tna-column tna-column--width-2-3 tna-column--width-5-6-medium tna-column--full-small tna-column--full-tiny" id="search-results">
+            {% if records|length == 0 %}
+                <div class="tna-aside tna-aside--tight tna-background-accent">
+                    <h2 class="tna-heading-m">No results found</h2>
+                    <p>You can improve your search results by:</p>
+                    <ul class="tna-ol">
+                        <li>Double checking your spelling</li>
+                        <li>Using fewer keywords</li>
+                    </ul>
+                </div>
+
+            {% else %}
+                <p>Showing <strong>{{ records|length }}</strong> result{{ 's' if records|length > 1 }}{% if key %} for &quot;{{ key }}&quot;{% endif %}</p>
+                <ol class="tna-ol tna-ol--plain">
+                    {%- for record in records %}
+                    {%- set card_body %}
+                    {{ record.description }}
+                    {%- endset %}
+                    <li class="tna-!--margin-bottom-s">
+                        {{ tnaCard({
+                                'title': record.name,
+                                'headingLevel': 2,
+                                'headingSize': 's',
+                                'href': '/records/' + record.reference,
+                                'body': card_body,
+                                'fullAreaClick': True,
+                                'style': 'tint',
+                                'classes': 'tna-card--small-body'
+                                }) }}
+                    </li>
+                    {%- endfor %}
+                </ol>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

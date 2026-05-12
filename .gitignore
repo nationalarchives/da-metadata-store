@@ -1,0 +1,6 @@
+static/
+.idea
+.venv
+metadata-store-api.zip
+.terraform
+__pycache__/
