@@ -15,6 +15,6 @@
         ],
         "profile_name": "dri",
         "project_name": "metadata-store",
-        "runtime": "python3.14"
+        "runtime": "python3.12"
     }
 }
