@@ -1,25 +1,37 @@
 name: Test
+on: push
 
-on:
-  push:
-
+permissions: {}
 jobs:
-  test:
+  container-job:
     runs-on: ubuntu-latest
+    container: python:3.12.13-alpine
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: password
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Check out repository code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          python-version: "3.12"
+          persist-credentials: false
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Run Django tests
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python manage.py test store.tests
         env:
           DJANGO_SETTINGS_MODULE: store.settings
-        run: python manage.py test
+          ISSUER: https://test.auth.example.com
+          COGNITO_CLIENT_ID: test
+          COGNITO_SECRET: test
+          APP_BASE_URL: http://localhost:8080/test
+          PROXY_URL: https://proxy.example.com
+          DATABASE_URL: postgres://postgres@postgres:5432/catalogue
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          PGPASSWORD: password
