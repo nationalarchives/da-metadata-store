@@ -3,7 +3,9 @@ import os
 
 import boto3
 from django.conf import settings
-from django.db.backends.postgresql.base import DatabaseWrapper as PostgresDatabaseWrapper
+from django.db.backends.postgresql.base import (
+    DatabaseWrapper as PostgresDatabaseWrapper,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +41,4 @@ class DatabaseWrapper(PostgresDatabaseWrapper):
 
             params["password"] = token
             params["sslmode"] = "require"
-        else:
-            params["host"] = "localhost"
-            params["user"] = "postgres"
-            params["password"] = "password"
         return params

@@ -1,0 +1,56 @@
+{%- extends 'base.html' -%}
+{% from "components/file-input/macro.html" import tnaFileInput %}
+{% from "components/select/macro.html" import tnaSelect %}
+{% from "components/button/macro.html" import tnaButton %}
+{%- set pageTitle = 'Upload' -%}
+
+{% block content %}
+    <div class="tna-container">
+        <div class="tna-column tna-column--width-2-3 tna-column--full-small tna-column--full-tiny tna-!--margin-top-l">
+            <form action="/upload/{{ record_id }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                <h1>Edit metadata</h1>
+                {{ tnaSelect({
+                  "label": "Reason",
+                  "headingSize": "m",
+                  "id": "reason",
+                  "name": "reason",
+                  "items": [
+                  {
+                      "text": "",
+                      "value": ""
+                    },
+                    {
+                      "text": "Because",
+                      "value": "because"
+                    }
+                  ]
+                }) }}
+                {% if error %}
+                    {{ tnaFileInput({
+                      "label": "Upload json file",
+                      "headingSize": "m",
+                      "id": "edit-json",
+                      "name": "json_edit",
+                      "error": {"text": error }
+                    }) }}
+                {% else %}
+                    {{ tnaFileInput({
+                      "label": "Upload json file",
+                      "headingSize": "m",
+                      "id": "edit-json",
+                      "name": "json_edit"
+                    }) }}
+                {% endif %}
+
+                <div class="tna-button-group">
+                    {{ tnaButton({
+                      "text": "Upload",
+                      "buttonElement": True,
+                      "buttonType": "submit"
+                    }) }}
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

@@ -3,22 +3,45 @@
 {% block content %}
     <div class="tna-container">
         <div class="tna-column tna-column--width-2-3 tna-column--full-small tna-column--full-tiny tna-!--margin-top-l">
+            <a href="/upload/{{ metadata['Record Id'] }}" class="tna-button">
+                Edit
+            </a>
             <hgroup class="tna-hgroup-xl">
-                <h1 class="tna-hgroup__title">{{ record.name }}</h1>
+                <h1 class="tna-hgroup__title">{{ metadata['Reference'] }}</h1>
             </hgroup>
-            <h2 class="tna-heading-l" id="summary">Summary</h2>
+            <h2 class="tna-heading-l" id="details">Details</h2>
             <dl class="tna-dl tna-dl--lined">
-                <dt>
-                    <span class="tna-dl__sticky-title">Description</span>
-                </dt>
-                <dd class="break-words">{{ record.description }}</dd>
-                {% for k, v in record.data.items() %}
+                {% for k, v in metadata.items() %}
+                    {% if k != 'Ia Id' and k != 'Sensitivity' and k != 'Digital Files' %}
                     <dt>
                         <span class="tna-dl__sticky-title">{{ k }}</span>
                     </dt>
                     <dd class="break-words">{{ v }}</dd>
+                    {% endif %}
                 {% endfor %}
             </dl>
+            {% if 'Sensitivity' in metadata %}
+                <h2 class="tna-heading-l" id="sensitivity">Sensitivity</h2>
+                <dl class="tna-dl tna-dl--lined">
+                    {% for k, v in metadata['Sensitivity'].items() %}
+                        <dt>
+                            <span class="tna-dl__sticky-title">{{ k }}</span>
+                        </dt>
+                        <dd class="break-words">{{ v }}</dd>
+                    {% endfor %}
+                </dl>
+            {% endif %}
+            {% if relationships %}
+                <h2 class="tna-heading-l" id="relationships">Relationships</h2>
+                <dl class="tna-dl tna-dl--lined">
+                    {%  for relationship in relationships %}
+                        <dt>
+                            <span class="tna-dl__sticky-title">{{ relationship.label }}</span>
+                        </dt>
+                        <dd><a href="/records/{{ relationship.asset.id }}">{{ relationship.asset.metadata.reference }}</a></dd>
+                    {%  endfor %}
+                </dl>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

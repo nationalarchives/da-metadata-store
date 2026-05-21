@@ -72,10 +72,10 @@
                     {%- endset %}
                     <li class="tna-!--margin-bottom-s">
                         {{ tnaCard({
-                                'title': record.name,
+                                'title': record.reference,
                                 'headingLevel': 2,
                                 'headingSize': 's',
-                                'href': '/records/' + record.reference,
+                                'href': '/records/' + record.record_id,
                                 'body': card_body,
                                 'fullAreaClick': True,
                                 'style': 'tint',
