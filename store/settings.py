@@ -17,6 +17,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-change-me")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
+API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "")
 PROXY_URL = os.environ.get("PROXY_URL", "").rstrip("/")
 COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID")
 COGNITO_SECRET = os.environ.get("COGNITO_SECRET")
@@ -25,12 +26,12 @@ ISSUER = os.environ.get("ISSUER")
 if not DEBUG:
     ALLOWED_HOSTS = [
         APP_BASE_URL.split("//")[1],
-        "zswuc7ynrg.execute-api.eu-west-2.amazonaws.com",
+        API_GATEWAY_URL,
     ]
 else:
     ALLOWED_HOSTS = [
         APP_BASE_URL.split("//")[1],
-        "zswuc7ynrg.execute-api.eu-west-2.amazonaws.com",
+        API_GATEWAY_URL,
         "localhost",
     ]
 

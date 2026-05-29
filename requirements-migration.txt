@@ -1,0 +1,10 @@
+Django>=6.0
+python-dotenv==1.2.2
+dj-database-url==2.2.0
+django-auditlog
+psycopg2-binary
+PyJWT
+cryptography
+Authlib
+zappa
+tna-frontend-jinja

@@ -1,34 +1,65 @@
-# CloudFront Distribution
-resource "aws_cloudfront_distribution" "main" {
-  enabled = true
+locals {
+  s3_origin_name     = "s3-origin"
+  webapp_origin_name = "webapp-origin"
+  us_east_1          = "us-east-1"
+}
+resource "aws_cloudfront_response_headers_policy" "security" {
+  name    = "ResponseHeadersPolicy"
+  comment = "Adds strict Content-Security-Policy for CloudFront responses"
 
-  origin {
-    domain_name = aws_s3_bucket.intg_pronom_website.bucket_regional_domain_name
-    origin_id   = "intg-pronom-website"
+  security_headers_config {
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
+    }
 
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.oai.cloudfront_access_identity_path
+    content_type_options {
+      override = false
+    }
+
+    frame_options {
+      frame_option = "DENY"
+      override     = false
+    }
+
+    referrer_policy {
+      referrer_policy = "strict-origin"
+      override        = false
     }
   }
+}
 
-  default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "intg-pronom-website"
+resource "aws_cloudfront_origin_access_control" "s3" {
+  name                              = "${var.environment}-metadata-store-s3-oac"
+  description                       = "OAC for S3 origin"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
 
-    forwarded_values {
-      query_string = false
+data "aws_cloudfront_cache_policy" "caching_optimised" {
+  name = "Managed-CachingOptimized"
+}
 
-      cookies {
-        forward = "none"
-      }
-    }
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
 
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
-    compress               = true
+data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
+  name = "Managed-AllViewerExceptHostHeader"
+}
+
+resource "aws_cloudfront_distribution" "site" {
+
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = var.app_name
+  price_class     = "PriceClass_All"
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
   }
 
   restrictions {
@@ -37,64 +68,74 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  origin {
+    domain_name              = module.metadata_store_static_files.s3_bucket_regional_domain_name
+    origin_id                = local.s3_origin_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
   }
 
-  logging_config {
-    include_cookies = false
-    bucket          = aws_s3_bucket.cloudfront_logs.bucket_regional_domain_name
-    prefix          = "cloudfront-logs/"
+  origin {
+    domain_name = "${aws_apigatewayv2_api.metadata_store.id}.execute-api.eu-west-2.amazonaws.com"
+    origin_id   = local.webapp_origin_name
+    origin_path = "/${var.environment}"
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
   }
 
-  tags = {
-    Name = "metadata-store-distribution"
+  default_cache_behavior {
+    target_origin_id       = local.webapp_origin_name
+    viewer_protocol_policy = "https-only"
+
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods  = ["GET", "HEAD", "OPTIONS"]
+
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+    # response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/static/*"
+    target_origin_id       = local.s3_origin_name
+    viewer_protocol_policy = "https-only"
+
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods  = ["GET", "HEAD", "OPTIONS"]
+
+    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimised.id
+
+    # response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
   }
 }
 
-# CloudFront Origin Access Identity
-resource "aws_cloudfront_origin_access_identity" "oai" {
-  comment = "OAI for metadata store S3 bucket"
+resource "aws_cloudwatch_log_delivery_source" "access_logs_source" {
+  name         = "${var.environment}-site-access-logs"
+  log_type     = "ACCESS_LOGS"
+  region       = local.us_east_1
+  resource_arn = aws_cloudfront_distribution.site.arn
 }
 
-# S3 Bucket for CloudFront Logs
-resource "aws_s3_bucket" "cloudfront_logs" {
-  bucket = "metadata-store-cloudfront-logs-${data.aws_caller_identity.current.account_id}-eu-west-2"
+resource "aws_cloudwatch_log_group" "site_access_logs" {
+  name              = "${var.environment}-site-access-logs"
+  region            = local.us_east_1
+  retention_in_days = 90
+}
 
-  tags = {
-    Name = "cloudfront-logs-bucket"
+resource "aws_cloudwatch_log_delivery_destination" "cloudfront_logs_destination" {
+  name          = "${var.environment}-site-logs-destination"
+  region        = local.us_east_1
+  output_format = "json"
+  delivery_destination_configuration {
+    destination_resource_arn = aws_cloudwatch_log_group.site_access_logs.arn
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "cloudfront_logs" {
-  bucket = aws_s3_bucket.cloudfront_logs.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-# S3 Bucket Policy for CloudFront Logs
-resource "aws_s3_bucket_policy" "cloudfront_logs" {
-  bucket = aws_s3_bucket.cloudfront_logs.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "cloudfront.amazonaws.com"
-        }
-        Action   = "s3:PutObject"
-        Resource = "${aws_s3_bucket.cloudfront_logs.arn}/*"
-        Condition = {
-          StringEquals = {
-            "AWS:SourceAccount" = data.aws_caller_identity.current.account_id
-          }
-        }
-      }
-    ]
-  })
+resource "aws_cloudwatch_log_delivery" "access_logs_delivery" {
+  region                   = local.us_east_1
+  delivery_source_name     = aws_cloudwatch_log_delivery_source.access_logs_source.name
+  delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront_logs_destination.arn
 }

@@ -3,7 +3,7 @@
   "info" : {
     "description" : "Proxies to the cognito endpoints",
     "version" : "2026-05-20T10:30:36Z",
-    "title" : "cognito-proxy"
+    "title" : "${title}"
   },
   "basePath" : "/${environment}",
   "schemes" : [ "https" ],
@@ -26,7 +26,7 @@
           }
         },
         "x-amazon-apigateway-integration" : {
-          "uri" : "https://metadata-store.auth.${region}.amazoncognito.com/oauth2/{path}",
+          "uri" : "https://${cognito_domain}.auth.${region}.amazoncognito.com/oauth2/{path}",
           "httpMethod" : "ANY",
           "responses" : {
             "default" : {

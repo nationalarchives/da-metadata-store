@@ -38,7 +38,7 @@ jobs:
 
       - name: Package Lambda with Zappa
         run: |
-          zappa package dev -o terraform/metadata-store-api.zip
+          zappa package dev -o terraform/metadata-store.zip
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3

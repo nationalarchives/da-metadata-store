@@ -1,6 +1,7 @@
 static/
 .idea
 .venv
-metadata-store-api.zip
+terraform/metadata-store.zip
+migrate.zip
 .terraform
 __pycache__/

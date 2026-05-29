@@ -1,9 +1,16 @@
-# Cognito User Pool
-locals {
-  domain_name = "metadata-store"
+resource "aws_cognito_user_pool" "sso_user_pool" {
+  count = var.use_entra_for_sso ? 0 : 1
+  name  = "${var.app_name}-sso-user-pool"
 }
+
+resource "aws_cognito_user_pool_client" "sso_client" {
+  count        = var.use_entra_for_sso ? 0 : 1
+  name         = "${var.app_name}-sso-user-pool-client"
+  user_pool_id = aws_cognito_user_pool.sso_user_pool[count.index].id
+}
+
 resource "aws_cognito_user_pool" "main" {
-  name = "${local.domain_name}-user-pool"
+  name = "${var.app_name}-user-pool"
 
   password_policy {
     minimum_length    = 8
@@ -46,28 +53,39 @@ resource "aws_cognito_user_pool" "main" {
     developer_only_attribute = false
   }
 
-  schema {
-    attribute_data_type      = "String"
-    name                     = "name"
-    required                 = false
-    mutable                  = true
-    developer_only_attribute = false
-  }
-
   tags = {
-    Name = "${local.domain_name}-user-pool"
+    Name = "${var.app_name}-user-pool"
   }
 }
 
 # Cognito User Pool Domain
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = local.domain_name
+  domain       = var.app_name
   user_pool_id = aws_cognito_user_pool.main.id
+}
+
+resource "random_password" "test_password" {
+  count  = var.environment == "prod" ? 0 : 1
+  length = 10
+}
+
+resource "aws_ssm_parameter" "cognito_test_password" {
+  count = var.environment == "prod" ? 0 : 1
+  name  = "/cognito/test/password"
+  type  = "SecureString"
+  value = random_password.test_password[count.index].result
+}
+
+resource "aws_cognito_user" "user" {
+  count        = var.environment == "prod" ? 0 : 1
+  user_pool_id = aws_cognito_user_pool.main.id
+  username     = "test@test.com"
+  password     = random_password.test_password[count.index].result
 }
 
 # Cognito App Client - Web (Django with federated login support)
 resource "aws_cognito_user_pool_client" "web_app" {
-  name         = "${local.domain_name}-web-app"
+  name         = "${var.app_name}-web-app"
   user_pool_id = aws_cognito_user_pool.main.id
   explicit_auth_flows = [
     "ALLOW_USER_PASSWORD_AUTH",
@@ -75,23 +93,24 @@ resource "aws_cognito_user_pool_client" "web_app" {
     "ALLOW_CUSTOM_AUTH",
     "ALLOW_USER_SRP_AUTH"
   ]
-
+  generate_secret                      = true
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
-  supported_identity_providers         = [aws_cognito_identity_provider.entra_saml.provider_name, "COGNITO"]
+  supported_identity_providers         = [var.environment == "prod" ? one(aws_cognito_identity_provider.entra_saml).provider_name : one(aws_cognito_identity_provider.cognito_oidc).provider_name]
 
   callback_urls = [
     "http://localhost:8000/auth",
-    "https://${local.domain_name}.example.com/auth"
+    "https://${aws_cloudfront_distribution.site.domain_name}/auth",
+    "https://${aws_cloudfront_distribution.site.domain_name}/",
   ]
 
   logout_urls = [
     "http://localhost:8000/logout",
-    "https://${local.domain_name}.example.com/logout"
+    "https://${aws_cloudfront_distribution.site.domain_name}/logout"
   ]
 
-  default_redirect_uri = "http://localhost:8000/auth"
+  default_redirect_uri = "https://${aws_cloudfront_distribution.site.domain_name}/"
 
   enable_token_revocation = true
   token_validity_units {
@@ -104,15 +123,15 @@ resource "aws_cognito_user_pool_client" "web_app" {
   id_token_validity      = 60
   refresh_token_validity = 30
 
-  read_attributes  = ["email", "email_verified", "name"]
-  write_attributes = ["email", "name"]
+  read_attributes  = ["email", "email_verified", "name", "given_name", "family_name"]
+  write_attributes = ["email", "name", "given_name", "family_name"]
 
   prevent_user_existence_errors = "ENABLED"
 }
 
 # Cognito App Client - API
 resource "aws_cognito_user_pool_client" "api_client" {
-  name         = "${local.domain_name}-api-client"
+  name         = "${var.app_name}-api-client"
   user_pool_id = aws_cognito_user_pool.main.id
   explicit_auth_flows = [
     "ALLOW_USER_PASSWORD_AUTH",
@@ -124,7 +143,7 @@ resource "aws_cognito_user_pool_client" "api_client" {
 
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["client_credentials"]
-  allowed_oauth_scopes                 = ["${local.domain_name}/read", "${local.domain_name}/write"]
+  allowed_oauth_scopes                 = ["${var.app_name}/read", "${var.app_name}/write"]
 
   token_validity_units {
     access_token  = "minutes"
@@ -137,20 +156,54 @@ resource "aws_cognito_user_pool_client" "api_client" {
   prevent_user_existence_errors = "ENABLED"
 }
 
-# Cognito Identity Provider - Entra (Microsoft Azure AD) SAML
+
+resource "aws_cognito_identity_provider" "cognito_oidc" {
+  count         = var.use_entra_for_sso ? 0 : 1
+  provider_name = "${var.app_name}-sso-provider"
+  provider_type = "OIDC"
+  user_pool_id  = aws_cognito_user_pool.sso_user_pool[count.index].id
+  provider_details = {
+    authorize_scopes = "email"
+    client_id        = aws_cognito_user_pool_client.sso_client[count.index].id
+    client_secret    = aws_cognito_user_pool_client.sso_client[count.index].client_secret
+  }
+}
 resource "aws_cognito_identity_provider" "entra_saml" {
+  count         = var.use_entra_for_sso ? 1 : 0
   user_pool_id  = aws_cognito_user_pool.main.id
   provider_name = "Entra"
   provider_type = "SAML"
 
   attribute_mapping = {
     email       = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-    name        = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
     family_name = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+    given_name  = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
+    name        = "http://schemas.microsoft.com/identity/claims/displayname"
+    username    = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
   }
 
   provider_details = {
-    MetadataURL = "https://login.microsoftonline.com/${data.aws_ssm_parameter.saml_tenant.value}/federationmetadata/2007-06/federationmetadata.xml"
+    MetadataURL = "https://login.microsoftonline.com/${var.saml_tenant}/federationmetadata/2007-06/federationmetadata.xml?appid=${var.entra_app_id}"
   }
+  lifecycle {
+    ignore_changes = [provider_details["ActiveEncryptionCertificate"], provider_details["SLORedirectBindingURI"], provider_details["SSORedirectBindingURI"]]
+  }
+}
+
+resource "aws_cognito_resource_server" "resource" {
+  identifier = var.app_name
+  name       = "Metadata store"
+
+  scope {
+    scope_name        = "read"
+    scope_description = "Is allowed to read all metadata"
+  }
+
+  scope {
+    scope_name        = "write"
+    scope_description = "Is allowed to write all metadata"
+  }
+
+  user_pool_id = aws_cognito_user_pool.main.id
 }
 

@@ -1,3 +1,5 @@
-resource "aws_sqs_queue" "metadata_update_queue" {
-  name = "${terraform.workspace}-metadata-update-queue"
+module "metadata_update_queue" {
+  source     = "git::https://github.com/nationalarchives/da-terraform-modules//sqs"
+  queue_name = "${var.app_name}-metadata-update"
+  sqs_policy = null
 }

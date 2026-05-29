@@ -68,14 +68,14 @@
                 <ol class="tna-ol tna-ol--plain">
                     {%- for record in records %}
                     {%- set card_body %}
-                    {{ record.description }}
+                    {{ record.metadata.description }}
                     {%- endset %}
                     <li class="tna-!--margin-bottom-s">
                         {{ tnaCard({
-                                'title': record.reference,
+                                'title': record.catalogue_reference,
                                 'headingLevel': 2,
                                 'headingSize': 's',
-                                'href': '/records/' + record.record_id,
+                                'href': '/records/' + record.id,
                                 'body': card_body,
                                 'fullAreaClick': True,
                                 'style': 'tint',
