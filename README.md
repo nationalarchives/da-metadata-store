@@ -9,69 +9,68 @@ authentication with Cognito, JWT-based API access, and production-ready AWS infr
 - Exposes `/api/records/<reference>` REST endpoint for API access
 - Uses AWS Cognito for authentication (with optional Entra SSO federation)
 - JWT bearer token validation for API requests
-- Bulk import functionality for metadata records
-- Full-text search capability
 - User audit logging
 - Stores records in PostgreSQL with automatic schema management
 
 ## Tech stack
 
-- **Backend**: Python 3.11+ & Django 4.2+
+- **Backend**: Python 3.12+ & Django 6+
 - **Database**: PostgreSQL
 - **Authentication**: AWS Cognito with federated identity support
 - **Token Validation**: PyJWT for bearer token authentication
 - **Infrastructure**: Terraform for complete AWS deployment (Lambda, RDS, API Gateway, CloudFront, S3)
-- **Testing**: 107 comprehensive test cases covering models, views, and utilities
+- **Testing**: 43 test cases covering models, views, and utilities
+- **UI Testing**: Cypress tests testing the webapp routes and API endpoints.
 
 ## Local setup
 
 ### Prerequisites
 
-- Python 3.11+
-- PostgreSQL 12+ or SQLite (local dev only)
-- pip and virtualenv
+- Python 3.12+
+- PostgreSQL 12+
+- poetry
 
 ### Steps
 
-1. **Create and activate a virtual environment**:
+1. **Create and activate a virtual environment and install depdendencies**:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   poetry install
    ```
-
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Create a `.env` file** (see example below):
+   
+2. **Export environment variables**:
    ```env
-   ISSUER=https://test.auth.example.com                                      <aws:dri> <region:eu-west-2>
-   export COGNITO_CLIENT_ID=test
-   export COGNITO_SECRET=test
+   ISSUER=https://test.auth.example.com
+   export CLIENT_ID=test
+   export CLIENT_SECRET=test
    export APP_BASE_URL=http://localhost:8080/test
    export PROXY_URL=https://proxy.example.com
+   ```
+   
+3. **Update hosts file**:
+   ```bash
+   echo "127.0.0.1 oidc" | sudo tee -a /etc/hosts
    ```
 
 4. **Apply migrations**:
    ```bash
-   python manage.py migrate
+   poetry run python manage.py migrate
+   poetry run python manage.py loaddata change_reason 
    ```
 
 5. **Run the development server**:
    ```bash
-   python manage.py runserver
+   poetry run python manage.py runserver
    ```
    Access at `http://localhost:8000`
 
 ## Key routes
 
-| Route               | Method   | Purpose                     | Auth        |
-|---------------------|----------|-----------------------------|-------------|
-| `/`                 | GET      | Search/browse records       | Cognito     |
-| `/results`          | GET      | Search results              | Cognito     |
-| `/records/<id>`     | GET      | Record detail page          | Cognito     |
-| `/api/records/<id>` | GET      | JSON API for record details | JWT Bearer  |
+| Route               | Method | Purpose                     | Auth       |
+|---------------------|--------|-----------------------------|------------|
+| `/`                 | GET    | Search/browse records       | Cognito    |
+| `/results`          | GET    | Search results              | Cognito    |
+| `/records/<id>`     | GET    | Record detail page          | Cognito    |
+| `/api/records/<id>` | GET    | JSON API for record details | JWT Bearer |
 
 ## Environment variables
 
@@ -82,63 +81,178 @@ authentication with Cognito, JWT-based API access, and production-ready AWS infr
 | `APP_BASE_URL`        | Yes      | Base URL for the application (e.g., `http://localhost:8000`)                               |
 | `DATABASE_URL`        | No       | Database connection string (defaults to SQLite)                                            |
 | `ISSUER`              | For Auth | Cognito token issuer (e.g., `https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_xxxxx`) |
-| `COGNITO_CLIENT_ID`   | For Auth | Cognito App Client ID                                                                      |
-| `COGNITO_SECRET`      | For Auth | Cognito App Client Secret (if using credential flow)                                       |
+| `CLIENT_ID`           | For Auth | Cognito App Client ID                                                                      |
+| `CLIENT_SECRET`       | For Auth | Cognito App Client Secret (if using credential flow)                                       |
 | `ALLOWED_HOSTS`       | No       | Comma-separated list of allowed host names                                                 |
 | `SECURE_SSL_REDIRECT` | No       | Set to `True` in production to enforce HTTPS                                               |
 
+## Database setup
+
+### Initial database creation
+
+For new PostgreSQL deployments in AWS, you need to set up the lambda_user and the trigger which calls the updates lambda function
+
+```bash
+# Connect as root user to PostgreSQL
+CREATE DATABASE catalogue;
+
+# Connect as root user to catalogue
+CREATE USER lambda_user; 
+GRANT rds_iam TO lambda_user;
+GRANT USAGE, CREATE ON SCHEMA public TO lambda_user;
+CREATE EXTENSION IF NOT EXISTS aws_lambda CASCADE;
+GRANT USAGE, CREATE ON SCHEMA aws_lambda to lambda_user;
+GRANT USAGE, CREATE ON SCHEMA aws_commons to lambda_user;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA aws_lambda TO lambda_user;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA aws_commons TO lambda_user;
+
+# Connect as lambda_user
+CREATE OR REPLACE FUNCTION notify_catalogue_updates()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    payload json;
+    lambda_arn text := 'arn:aws:lambda:eu-west-2:${account_number}:function:${environment}-catalogue-updates';
+BEGIN
+    payload := json_build_object('record_id', NEW.id);
+
+    PERFORM aws_lambda.invoke(
+        aws_commons.create_lambda_function_arn(lambda_arn),
+        payload
+    );
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_catalogue_updates ON store_metadata;
+
+CREATE TRIGGER trg_notify_catalogue_updates
+AFTER UPDATE ON store_metadata
+FOR EACH ROW
+EXECUTE FUNCTION notify_catalogue_updates();
+```
+
+This script:
+
+- Creates the `catalogue` database
+- Creates a `lambda_user` with appropriate permissions and IAM authentication.
+
+### Schema management
+
+The Django ORM handles schema creation and migrations:
+
+```bash
+# Create initial migrations
+poetry run python manage.py makemigrations
+
+# Apply all pending migrations
+poetry run python manage.py migrate
+
+# Apply fixtures
+poetry run python manage.py loaddata change_reason
+```
+
 ## Database models
 
-The application includes 16 Django models for comprehensive metadata management:
+The application includes 4 Django models for comprehensive metadata management:
 
 **Core Models:**
 
-- `CopyrightTitle` - Rights and copyright information
-- `AssetTitle` - Asset name/title catalog
-- `CatalogRecord` - Main metadata records (supports arrays for relationships)
-- `RecordOutput` - Formatted/derived output variants
-- `Dimension` - Size/measurement metadata
+- `Metadata` - Main metadata records with JSON-based flexible schema, including catalogue reference, type, mastery status, and timestamps
+- `RelationshipTypes` - Defines types of relationships between metadata records (e.g., parent-child, related-to)
+- `Relationships` - Links between metadata records with relationship type and attributes
+- `ChangeReason` - Predefined reasons for metadata changes (closures, corrections, FOI reviews, etc.)
 
-**Supporting Models:**
+## Infrastructure (AWS/Terraform)
 
-- `ImportRecord` - Track bulk import jobs and status
-- `RecordStatus` - Record workflow state tracking
-- `Relationship` - Links between catalog records
-- `RelatedField` - Flexible relationship attributes
+The application is deployed on AWS using Terraform for infrastructure-as-code. The complete infrastructure is defined in
+the `terraform/` directory.
 
-**Schema details** in `database/init.sql` includes:
+### Infrastructure components
 
-- Automatic `updated_at` timestamps with triggers
-- Full-text search indexes using PostgreSQL GIN
-- Foreign key relationships with cascading deletes
-- User audit logging with IP and user agent tracking
+- **Lambda**: Serverless compute for the Django application
+- **RDS (PostgreSQL)**: Managed relational database
+- **API Gateway**: REST API endpoint routing
+- **CloudFront**: CDN for static assets and content distribution
+- **S3**: Static asset storage and Lambda code packages
+- **Cognito**: User authentication and identity management
+- **SQS**: Asynchronous task queue (optional)
+- **VPC/Networking**: Secure networking setup
+
+### Configuration
+
+Terraform uses environment-specific variable files:
+
+- `intg.auto.tfvars` - Integration environment
+- `prod.auto.tfvars` - Production environment
+
+Key variables in `variables.tf`:
+
+- `app_name` - Application name (used for resource naming)
+- `environment` - Deployment environment (intg/prod)
+- `use_entra_for_sso` - Enable Microsoft Entra ID federation (bool)
+- `saml_tenant` - SAML tenant for SSO federation
+- `app_secret` - Django SECRET_KEY
+
+### Backend state management
+
+Terraform state is stored in an S3 bucket with encryption and locking:
+
+```
+s3://metadata-store-terraform-state/terraform.state
+```
+
+### Deploying infrastructure
+
+```bash
+cd terraform/
+
+# Initialise Terraform
+terraform init
+
+# Select correct workspace
+terraform workspace select intg
+
+# Plan changes for a specific environment
+terraform plan -var-file=intg.auto.tfvars
+
+# Apply infrastructure changes
+terraform apply -var-file=intg.auto.tfvars
+
+# Destroy infrastructure (use with caution)
+terraform destroy -var-file=intg.auto.tfvars
+```
+
+### Lambda deployment
+
+The application code is packaged and deployed to Lambda with migrations automatically run on deployment:
+
+- `metadata-store.zip` - Application code package
+- `migrate.zip` - Database migration job
 
 ## Tests
 
 ### Running tests
 
 ```bash
-# Set environment variables for OAuth
-export ISSUER="https://your-issuer.example.com"
-export COGNITO_CLIENT_ID="your-client-id"
-export COGNITO_SECRET="your-secret"
-export APP_BASE_URL="http://localhost:8000"
-export PROXY_URL="https://your-proxy.example.com"
-export DATABASE_URL=postgres://postgres@localhost:5432/catalogue
-
 # Run tests
 python manage.py test store.tests
 python manage.py test store.tests.test_models -v 2
 python manage.py test store.tests --keepdb  # Keep test database between runs
 ```
 
-### Local Deployment
-
-For local testing with Lambda and API Gateway simulation:
-
+### Running cypress tests
 ```bash
-pip install -r requirements.txt
-python manage.py runserver
+export USER=user1 
+export PASSWORD=password 
+export TOKEN_ENDPOINT=http://oidc/token
+export CLIENT_ID=demo-client
+export CLIENT_SECRET=demo-secret
+export CYPRESS_BASE_URL=http://localhost:8000/
+cd tests/e2e 
+npm t
 ```
 
 ## Development

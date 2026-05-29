@@ -1,6 +1,11 @@
 static/
 .idea
 .venv
-metadata-store-api.zip
+terraform/metadata-store.zip
+migrate.zip
 .terraform
 __pycache__/
+tests/e2e/node_modules/*
+terraform/templates/lambda/*
+node_modules
+site

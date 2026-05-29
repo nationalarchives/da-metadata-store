@@ -1,0 +1,8 @@
+users:
+  user1:
+    password: "password"
+    email: "user1@example.org"
+    roles:
+      - "USER"
+    tenant: "default"
+default_user: user1

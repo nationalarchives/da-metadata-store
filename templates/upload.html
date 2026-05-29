@@ -2,43 +2,54 @@
 {% from "components/file-input/macro.html" import tnaFileInput %}
 {% from "components/select/macro.html" import tnaSelect %}
 {% from "components/button/macro.html" import tnaButton %}
+{% from "components/error-summary/macro.html" import tnaErrorSummary %}
 {%- set pageTitle = 'Upload' -%}
 
 {% block content %}
     <div class="tna-container">
         <div class="tna-column tna-column--width-2-3 tna-column--full-small tna-column--full-tiny tna-!--margin-top-l">
+            {% if error_summary %}
+                {{ tnaErrorSummary({
+                    "title": "There is a problem",
+                    "items": error_summary,
+                    "disableAutoFocus": True
+                }) }}
+            {% endif %}
             <form action="/upload/{{ record_id }}" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
                 <h1>Edit metadata</h1>
-                {{ tnaSelect({
-                  "label": "Reason",
-                  "headingSize": "m",
-                  "id": "reason",
-                  "name": "reason",
-                  "items": [
-                  {
-                      "text": "",
-                      "value": ""
-                    },
-                    {
-                      "text": "Because",
-                      "value": "because"
-                    }
-                  ]
-                }) }}
-                {% if error %}
+                {% if "reason" in errors %}
+                    {{ tnaSelect({
+                      "label": "Reason",
+                      "headingSize": "m",
+                      "id": "reason",
+                      "name": "reason",
+                      "items": reasons,
+                      "error": {"text": errors["reason"]}
+                    }) }}
+                {% else %}
+                    {{ tnaSelect({
+                      "label": "Reason",
+                      "headingSize": "m",
+                      "id": "reason",
+                      "name": "reason",
+                      "items": reasons
+                    }) }}
+                {% endif %}
+
+                {% if "json_edit" in errors %}
                     {{ tnaFileInput({
                       "label": "Upload json file",
                       "headingSize": "m",
-                      "id": "edit-json",
+                      "id": "json_edit",
                       "name": "json_edit",
-                      "error": {"text": error }
+                      "error": {"text": errors["json_edit"] }
                     }) }}
                 {% else %}
                     {{ tnaFileInput({
                       "label": "Upload json file",
                       "headingSize": "m",
-                      "id": "edit-json",
+                      "id": "json_edit",
                       "name": "json_edit"
                     }) }}
                 {% endif %}

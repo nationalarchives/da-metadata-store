@@ -1,0 +1,30 @@
+[project]
+name = "store"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "#"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.poetry.dependencies]
+Django = "^6.0"
+python-dotenv = "1.2.2"
+dj-database-url = "2.2.0"
+django-auditlog = "3.4.1"
+psycopg2-binary = "2.9.12"
+PyJWT = "2.13.0"
+cryptography = "48.0.0"
+Authlib = "1.7.2"
+tna-frontend-jinja = "0.41.0"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+zappa = "0.62.1"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

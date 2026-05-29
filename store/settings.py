@@ -3,34 +3,56 @@ Django settings for store project.
 """
 
 import os
+import boto3
 from pathlib import Path
 from sysconfig import get_path
 
-from django.conf.global_settings import APPEND_SLASH
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def get_parameter(parameter_path):
+    ssm = boto3.client("ssm")
+    response = ssm.get_parameter(Name=os.environ[parameter_path], WithDecryption=True)
+    return response["Parameter"]["Value"]
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-change-me")
+SECRET_KEY = (
+    get_parameter("SECRET_KEY_PATH")
+    if "SECRET_KEY_PATH" in os.environ
+    else os.environ.get("SECRET_KEY", "change-me")
+)
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
-PROXY_URL = os.environ.get("PROXY_URL", "").rstrip("/")
-COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID")
-COGNITO_SECRET = os.environ.get("COGNITO_SECRET")
+API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "")
+ACCESS_TOKEN_URL = os.environ.get("ACCESS_TOKEN_URL", "").rstrip("/")
+LOGOUT_BASE_URL = os.environ.get("LOGOUT_BASE_URL", "").rstrip("/")
+CLIENT_ID = (
+    get_parameter("CLIENT_ID_PATH")
+    if "CLIENT_ID_PATH" in os.environ
+    else os.environ.get("CLIENT_ID")
+)
+
+CLIENT_SECRET = (
+    get_parameter("CLIENT_SECRET_PATH")
+    if "CLIENT_SECRET_PATH" in os.environ
+    else os.environ.get("CLIENT_SECRET")
+)
 ISSUER = os.environ.get("ISSUER")
 
 if not DEBUG:
     ALLOWED_HOSTS = [
         APP_BASE_URL.split("//")[1],
-        "zswuc7ynrg.execute-api.eu-west-2.amazonaws.com",
+        API_GATEWAY_URL,
     ]
 else:
     ALLOWED_HOSTS = [
         APP_BASE_URL.split("//")[1],
-        "zswuc7ynrg.execute-api.eu-west-2.amazonaws.com",
+        API_GATEWAY_URL,
         "localhost",
     ]
 

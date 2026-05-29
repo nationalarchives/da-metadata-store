@@ -1,4 +1,9 @@
 {
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "${title}",
+    "version" : "2026-05-29 08:40:34UTC"
+  },
   "paths" : {
     "/{path+}" : {
       "get" : {
@@ -11,7 +16,7 @@
           "payloadFormatVersion" : "2.0",
           "type" : "aws_proxy",
           "httpMethod" : "POST",
-          "uri" : "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account_id}:function:metadata-store/invocations",
+          "uri" : "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account_id}:function:${lambda_name}/invocations",
           "connectionType" : "INTERNET"
         }
       },
@@ -25,7 +30,7 @@
           "payloadFormatVersion" : "2.0",
           "type" : "aws_proxy",
           "httpMethod" : "POST",
-          "uri" : "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account_id}:function:metadata-store/invocations",
+          "uri" : "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account_id}:function:${lambda_name}/invocations",
           "connectionType" : "INTERNET"
         }
       },

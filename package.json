@@ -1,0 +1,13 @@
+{
+  "name": "metadata-store",
+  "scripts": {
+    "css": "sass --style=compressed --load-path=node_modules --embed-sources src/styles:styles"
+  },
+  "dependencies": {
+    "@nationalarchives/frontend": "0.40.0"
+  },
+  "devDependencies": {
+    "sass": "^1.99.0"
+  }
+}
+
