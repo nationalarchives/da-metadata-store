@@ -1,4 +1,4 @@
-template-file-path: bootstrap_environments.json
+template-file-path: bootstrap.json
 parameters:
   Environment: /environment/name
 tags: {}
