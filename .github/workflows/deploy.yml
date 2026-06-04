@@ -27,6 +27,11 @@ jobs:
 
       - name: Build migrate lambda
         run: |
+          python3 -m pip install --user pipx
+          pipx install poetry
+          poetry install --with dev
+          poetry run zappa package dev -o terraform/metadata-store.zip
+          
           mkdir -p package
           pip install --target=package .
           pip install --target=package requests
@@ -37,10 +42,6 @@ jobs:
           zip -rA migrate.zip tests/test_scripts
           zip migrate.zip migrate.py
           mv migrate.zip terraform
-          python3 -m pip install --user pipx
-          pipx install poetry
-          poetry install --with dev
-          zappa package dev -o terraform/metadata-store.zip
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
