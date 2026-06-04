@@ -16,7 +16,7 @@ jobs:
           docker compose exec app poetry run python /app/manage.py migrate
           docker compose exec app poetry run python /app/manage.py loaddata change_reason
           docker compose exec app poetry run python /app/manage.py loaddata /app/tests/test_scripts/test-fixture.json
-          timeout 60 bash -c 'while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/ | grep -q "^302$"; do sleep 1; done'
+          timeout 60 bash -c 'while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/ | grep -q "^302$"; do sleep 1; done'
           docker compose exec app poetry run python /app/manage.py test store.tests
           docker compose exec app poetry run ruff format --check
       - run: |
