@@ -64,6 +64,7 @@
                     "apigateway:*",
                     "logs:*",
                     "lambda:*",
+                    "organizations:DescribeOrganization",
                     "scheduler:*",
                     "shield:*",
                     "wafv2:*",
