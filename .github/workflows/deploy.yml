@@ -37,6 +37,8 @@ jobs:
           zip -rA migrate.zip tests/test_scripts
           zip migrate.zip migrate.py
           mv migrate.zip terraform
+          python3 -m pip install --user pipx
+          pipx install poetry
           poetry install
           zappa package dev -o terraform/metadata-store.zip
       - name: Configure AWS credentials
