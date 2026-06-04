@@ -18,7 +18,7 @@ resource "aws_rds_cluster" "metadata_store" {
   engine_version                      = "17.7"
   database_name                       = "metadata_store"
   manage_master_user_password         = true
-  master_username                     = "${var.app_name}-db-user"
+  master_username                     = "master_user"
   deletion_protection                 = true
   port                                = 5432
   db_subnet_group_name                = aws_db_subnet_group.metadata_store.name
