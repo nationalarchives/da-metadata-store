@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: eu-west-2
-
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -50,4 +49,19 @@ jobs:
         run: |
           terraform init
           terraform apply -auto-approve
-          
+        env:
+          TF_VAR_app_secret: ${{ secrets.APP_SECRET }}
+          TF_VAR_saml_tenant: ${{ secrets.SAML_TENANT }}
+          TF_VAR_entra_app_id: ${{ secrets.ENTRA_APP_ID }}
+      - name: Copy static files
+        run: | 
+          docker compose up -d --build
+          docker compose exec app tna-build
+          mkdir site
+          cp node_modules/@nationalarchives/frontend/nationalarchives/all.js node_modules/@nationalarchives/frontend/nationalarchives/all.js.map node_modules/@nationalarchives/frontend/nationalarchives/assets/images/favicon.ico node_modules/@nationalarchives/frontend/nationalarchives/assets/fonts/fa-solid-900.woff2 site
+          cd site
+          aws s3 sync . metadata-store-static-files-$ACCOUNT_NUMBER-eu-west-2-an
+        env:
+          ACCOUNT_NUMBER: ${{ secrets.ACCOUNT_NUMBER }}
+
+        

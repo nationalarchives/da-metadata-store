@@ -7,3 +7,5 @@ migrate.zip
 __pycache__/
 tests/e2e/node_modules/*
 terraform/templates/lambda/*
+node_modules
+site
