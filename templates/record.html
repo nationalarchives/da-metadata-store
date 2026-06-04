@@ -3,7 +3,7 @@
 {% block content %}
     <div class="tna-container">
         <div class="tna-column tna-column--width-2-3 tna-column--full-small tna-column--full-tiny tna-!--margin-top-l">
-            <a href="/upload/{{ metadata['Record Id'] }}" class="tna-button">
+            <a href="/upload/{{ id }}" class="tna-button">
                 Edit
             </a>
             <hgroup class="tna-hgroup-xl">
@@ -12,7 +12,7 @@
             <h2 class="tna-heading-l" id="details">Details</h2>
             <dl class="tna-dl tna-dl--lined">
                 {% for k, v in metadata.items() %}
-                    {% if k != 'Ia Id' and k != 'Sensitivity' and k != 'Digital Files' %}
+                    {% if k != 'Ia Id' and k != 'Sensitivity' and k != 'Digital Files' and k != 'Reference' %}
                     <dt>
                         <span class="tna-dl__sticky-title">{{ k }}</span>
                     </dt>

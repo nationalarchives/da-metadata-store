@@ -5,6 +5,7 @@ import urllib.request
 import os
 import boto3
 
+
 def upload_dict_to_s3(data, object_key):
     s3 = boto3.client("s3")
 
@@ -23,6 +24,7 @@ def json_from_request(request):
         response_body = response.read().decode("utf-8")
         return json.loads(response_body)
 
+
 def get_oauth2_token(token_url, client_id, client_secret):
     data = {
         "grant_type": "client_credentials",
@@ -35,32 +37,27 @@ def get_oauth2_token(token_url, client_id, client_secret):
     request = urllib.request.Request(
         token_url,
         data=encoded_data,
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
         method="POST",
     )
     return json_from_request(request)
 
 
-
 def lambda_handler(event, context):
-    for record in event['Records']:
-        update = json.loads(record['body'])
+    for record in event["Records"]:
+        update = json.loads(record["body"])
     print(event)
     token_response = get_oauth2_token(
         token_url="https://metadata-store.auth.eu-west-2.amazoncognito.com/oauth2/token",
         client_id=os.environ["CLIENT_ID"],
-        client_secret=os.environ["CLIENT_SECRET"]
+        client_secret=os.environ["CLIENT_SECRET"],
     )
 
     access_token = token_response.get("access_token")
-    record_id = update['record_id']
+    record_id = update["record_id"]
     request = urllib.request.Request(
-        f"{os.environ["API_HOST"]}/api/records/{record_id}",
-        headers={
-            "Authorization": f"Bearer {access_token}"
-        },
+        f"{os.environ['API_HOST']}/api/records/{record_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
         method="GET",
     )
     upload_dict_to_s3(json_from_request(request), record_id)

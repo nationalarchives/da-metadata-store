@@ -1,12 +1,23 @@
 resource "aws_cognito_user_pool" "sso_user_pool" {
   count = var.use_entra_for_sso ? 0 : 1
   name  = "${var.app_name}-sso-user-pool"
+  admin_create_user_config {
+    allow_admin_create_user_only = true
+  }
+  user_pool_add_ons {
+    advanced_security_mode = "AUDIT"
+  }
+
 }
 
 resource "aws_cognito_user_pool_client" "sso_client" {
-  count        = var.use_entra_for_sso ? 0 : 1
-  name         = "${var.app_name}-sso-user-pool-client"
-  user_pool_id = aws_cognito_user_pool.sso_user_pool[count.index].id
+  count                        = var.use_entra_for_sso ? 0 : 1
+  name                         = "${var.app_name}-sso-user-pool-client"
+  user_pool_id                 = aws_cognito_user_pool.sso_user_pool[count.index].id
+  generate_secret              = true
+  allowed_oauth_scopes         = ["openid", "email", "profile"]
+  callback_urls                = ["https://${var.app_name}.auth.${data.aws_region.current.region}.amazoncognito.com/oauth2/idpresponse"]
+  supported_identity_providers = ["COGNITO"]
 }
 
 resource "aws_cognito_user_pool" "main" {
@@ -18,6 +29,10 @@ resource "aws_cognito_user_pool" "main" {
     require_numbers   = true
     require_symbols   = true
     require_uppercase = true
+  }
+
+  user_pool_add_ons {
+    advanced_security_mode = "AUDIT"
   }
 
   auto_verified_attributes = ["email"]
@@ -42,7 +57,7 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   admin_create_user_config {
-    allow_admin_create_user_only = false
+    allow_admin_create_user_only = true
   }
 
   schema {
@@ -58,32 +73,52 @@ resource "aws_cognito_user_pool" "main" {
   }
 }
 
+resource "aws_wafv2_web_acl_association" "main" {
+  resource_arn = aws_cognito_user_pool.main.arn
+  web_acl_arn  = aws_wafv2_web_acl.cognito_web_acl.arn
+}
+
+resource "aws_wafv2_web_acl_association" "sso_user_pool" {
+  count        = var.use_entra_for_sso ? 0 : 1
+  resource_arn = aws_cognito_user_pool.sso_user_pool[count.index].arn
+  web_acl_arn  = aws_wafv2_web_acl.cognito_web_acl.arn
+}
+
 # Cognito User Pool Domain
 resource "aws_cognito_user_pool_domain" "main" {
   domain       = var.app_name
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
+resource "aws_cognito_user_pool_domain" "sso" {
+  count        = var.use_entra_for_sso ? 0 : 1
+  domain       = "${var.app_name}-sso"
+  user_pool_id = aws_cognito_user_pool.sso_user_pool[count.index].id
+}
+
 resource "random_password" "test_password" {
-  count  = var.environment == "prod" ? 0 : 1
-  length = 10
+  count       = var.use_entra_for_sso ? 0 : 1
+  length      = 10
+  min_special = 1
 }
 
 resource "aws_ssm_parameter" "cognito_test_password" {
-  count = var.environment == "prod" ? 0 : 1
+  count = var.use_entra_for_sso ? 0 : 1
   name  = "/cognito/test/password"
   type  = "SecureString"
   value = random_password.test_password[count.index].result
 }
 
 resource "aws_cognito_user" "user" {
-  count        = var.environment == "prod" ? 0 : 1
-  user_pool_id = aws_cognito_user_pool.main.id
+  count        = var.use_entra_for_sso ? 0 : 1
+  user_pool_id = aws_cognito_user_pool.sso_user_pool[count.index].id
   username     = "test@test.com"
   password     = random_password.test_password[count.index].result
+  attributes = {
+    email = "test@test.com"
+  }
 }
 
-# Cognito App Client - Web (Django with federated login support)
 resource "aws_cognito_user_pool_client" "web_app" {
   name         = "${var.app_name}-web-app"
   user_pool_id = aws_cognito_user_pool.main.id
@@ -97,7 +132,7 @@ resource "aws_cognito_user_pool_client" "web_app" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
-  supported_identity_providers         = [var.environment == "prod" ? one(aws_cognito_identity_provider.entra_saml).provider_name : one(aws_cognito_identity_provider.cognito_oidc).provider_name]
+  supported_identity_providers         = [var.use_entra_for_sso ? one(aws_cognito_identity_provider.entra_saml).provider_name : one(aws_cognito_identity_provider.cognito_oidc).provider_name]
 
   callback_urls = [
     "http://localhost:8000/auth",
@@ -129,7 +164,6 @@ resource "aws_cognito_user_pool_client" "web_app" {
   prevent_user_existence_errors = "ENABLED"
 }
 
-# Cognito App Client - API
 resource "aws_cognito_user_pool_client" "api_client" {
   name         = "${var.app_name}-api-client"
   user_pool_id = aws_cognito_user_pool.main.id
@@ -161,19 +195,26 @@ resource "aws_cognito_identity_provider" "cognito_oidc" {
   count         = var.use_entra_for_sso ? 0 : 1
   provider_name = "${var.app_name}-sso-provider"
   provider_type = "OIDC"
-  user_pool_id  = aws_cognito_user_pool.sso_user_pool[count.index].id
+  user_pool_id  = aws_cognito_user_pool.main.id
   provider_details = {
-    authorize_scopes = "email"
-    client_id        = aws_cognito_user_pool_client.sso_client[count.index].id
-    client_secret    = aws_cognito_user_pool_client.sso_client[count.index].client_secret
+    authorize_scopes              = "email openid"
+    client_id                     = aws_cognito_user_pool_client.sso_client[count.index].id
+    client_secret                 = aws_cognito_user_pool_client.sso_client[count.index].client_secret
+    oidc_issuer                   = "https://cognito-idp.eu-west-2.amazonaws.com/${aws_cognito_user_pool.sso_user_pool[count.index].id}"
+    attributes_request_method     = "GET"
+    attributes_url_add_attributes = false
+  }
+  attribute_mapping = {
+    email    = "email"
+    username = "sub"
   }
 }
 resource "aws_cognito_identity_provider" "entra_saml" {
-  count         = var.use_entra_for_sso ? 1 : 0
-  user_pool_id  = aws_cognito_user_pool.main.id
-  provider_name = "Entra"
-  provider_type = "SAML"
-
+  count           = var.use_entra_for_sso ? 1 : 0
+  user_pool_id    = aws_cognito_user_pool.main.id
+  provider_name   = "Entra"
+  provider_type   = "SAML"
+  idp_identifiers = []
   attribute_mapping = {
     email       = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
     family_name = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
@@ -205,5 +246,73 @@ resource "aws_cognito_resource_server" "resource" {
   }
 
   user_pool_id = aws_cognito_user_pool.main.id
+}
+resource "aws_wafv2_web_acl" "cognito_web_acl" {
+  region = data.aws_region.current.region
+  name   = "${var.environment}-wafwebacl-cognito"
+  scope  = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "AntiDDOS"
+    priority = 2
+
+    override_action {
+      count {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAntiDDoSRuleSet"
+        vendor_name = "AWS"
+
+        managed_rule_group_configs {
+          aws_managed_rules_anti_ddos_rule_set {
+            client_side_action_config {
+              challenge {
+                usage_of_action = "DISABLED"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AntiDDOS"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimit"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 10000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimit"
+      sampled_requests_enabled   = true
+    }
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "WAFRules"
+    sampled_requests_enabled   = true
+  }
 }
 

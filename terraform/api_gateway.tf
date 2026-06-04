@@ -30,6 +30,7 @@ resource "aws_apigatewayv2_stage" "metadata_store" {
         "responseLength" = "$context.responseLength"
         "routeKey"       = "$context.routeKey"
         "status"         = "$context.status"
+        "path"           = "$context.path"
       }
     )
   }
@@ -37,6 +38,10 @@ resource "aws_apigatewayv2_stage" "metadata_store" {
 
 resource "aws_cloudwatch_log_group" "metadata_store_api" {
   name = "API-Gateway-Execution-Logs_${aws_apigatewayv2_api.metadata_store.id}/${var.environment}"
+}
+
+resource "aws_cloudwatch_log_group" "cognito_proxy_api" {
+  name = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.cognito_proxy.id}/${var.environment}"
 }
 
 resource "aws_iam_role" "cloudwatch" {
@@ -64,21 +69,51 @@ resource "aws_api_gateway_rest_api" "cognito_proxy" {
     vpc_endpoint_ids = [module.vpc.interface_endpoints["execute_api"].id]
   }
   body = templatefile("${path.module}/templates/apigateway/cognito_proxy.json.tpl", {
-    title                    = "${var.environment}-cognito-proxy"
-    environment              = var.environment
+    title          = "${var.environment}-cognito-proxy"
+    environment    = var.environment
+    region         = data.aws_region.current.region,
+    account_id     = data.aws_caller_identity.current.account_id
+    cognito_domain = var.app_name
+  })
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_rest_api_policy" "cognito_proxy" {
+  policy = templatefile("${path.module}/templates/iam/policies/cognito_proxy_policy.json.tpl", {
     region                   = data.aws_region.current.region,
     account_id               = data.aws_caller_identity.current.account_id
     api_gateway_vpc_endpoint = module.vpc.interface_endpoints["execute_api"].id
-    cognito_domain           = var.app_name
   })
+  rest_api_id = aws_api_gateway_rest_api.cognito_proxy.id
 }
 
 resource "aws_api_gateway_deployment" "cognito_proxy" {
   rest_api_id = aws_api_gateway_rest_api.cognito_proxy.id
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_api_gateway_stage" "cognito_proxy" {
   deployment_id = aws_api_gateway_deployment.cognito_proxy.id
   rest_api_id   = aws_api_gateway_rest_api.cognito_proxy.id
   stage_name    = var.environment
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.cognito_proxy_api.arn
+    format = jsonencode(
+      {
+        "httpMethod"     = "$context.httpMethod"
+        "ip"             = "$context.identity.sourceIp"
+        "protocol"       = "$context.protocol"
+        "requestId"      = "$context.requestId"
+        "requestTime"    = "$context.requestTime"
+        "responseLength" = "$context.responseLength"
+        "routeKey"       = "$context.routeKey"
+        "status"         = "$context.status"
+        "path"           = "$context.path"
+      }
+    )
+  }
 }

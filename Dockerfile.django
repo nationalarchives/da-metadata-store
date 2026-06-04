@@ -1,0 +1,6 @@
+FROM ghcr.io/nationalarchives/tna-python-dev:1
+HEALTHCHECK --interval=15s CMD echo "OK"
+COPY pyproject.toml poetry.lock ./
+RUN tna-build
+COPY . .
+CMD ["tna-wsgi", "app:app"]

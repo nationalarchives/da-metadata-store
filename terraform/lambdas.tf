@@ -1,4 +1,3 @@
-
 module "metadata_store_lambda" {
   source        = "../../../da/da-terraform-modules/lambda"
   function_name = var.app_name
@@ -23,20 +22,19 @@ module "metadata_store_lambda" {
     "apigateway.amazonaws.com" = "arn:aws:execute-api:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.metadata_store.id}/*/*/{path+}"
   }
   plaintext_env_vars = {
-    APP_BASE_URL      = "https://${aws_cloudfront_distribution.site.domain_name}"
-    API_GATEWAY_URL   = "${aws_apigatewayv2_api.metadata_store.id}.execute-api.${data.aws_region.current.region}.amazonaws.com"
-    COGNITO_CLIENT_ID = aws_cognito_user_pool_client.web_app.id
-    COGNITO_SECRET    = aws_cognito_user_pool_client.web_app.client_secret
-    DATABASE_URL      = "postgres://lambda_user@${aws_rds_cluster.metadata_store.endpoint}:5432/catalogue?sslmode=require"
-    ISSUER            = "https://cognito-idp.${data.aws_region.current.region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
-    PROXY_URL         = aws_api_gateway_stage.cognito_proxy.invoke_url
-    SECRET_KEY        = var.app_secret
-    USE_IAM_AUTH      = true
+    APP_BASE_URL     = "https://${aws_cloudfront_distribution.site.domain_name}"
+    API_GATEWAY_URL  = "${aws_apigatewayv2_api.metadata_store.id}.execute-api.${data.aws_region.current.region}.amazonaws.com"
+    CLIENT_ID        = aws_cognito_user_pool_client.web_app.id
+    CLIENT_SECRET    = aws_cognito_user_pool_client.web_app.client_secret
+    DATABASE_URL     = "postgres://lambda_user@${aws_rds_cluster.metadata_store.endpoint}:5432/catalogue?sslmode=require"
+    ISSUER           = "https://cognito-idp.${data.aws_region.current.region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
+    ACCESS_TOKEN_URL = "${aws_api_gateway_stage.cognito_proxy.invoke_url}/oauth2/token"
+    SECRET_KEY       = var.app_secret
+    USE_IAM_AUTH     = true
+    LOGOUT_BASE_URL  = "https://${var.app_name}.auth.eu-west-2.amazoncognito.com/"
   }
   tags = {}
 }
-
-
 
 data "archive_file" "catalogue_updates_code" {
   type        = "zip"
@@ -93,6 +91,34 @@ module "catalogue_write_cache_lambda" {
   plaintext_env_vars = {
     API_BASE_URL = "https://${aws_cloudfront_distribution.site.domain_name}"
     CACHE_BUCKET = local.cache_bucket_name
+  }
+  tags = {}
+}
+
+module "data_migrations_lambda" {
+  source        = "../../../da/da-terraform-modules/lambda"
+  function_name = "${var.environment}-data-migration"
+  policies = {
+    data_migrations_policy = templatefile("${path.module}/templates/iam/policies/metadata_store.json.tpl", {
+      region         = data.aws_region.current.region
+      account_number = data.aws_caller_identity.current.account_id
+      cluster_id     = aws_rds_cluster.metadata_store.cluster_resource_id
+    })
+  }
+  filename        = "migrate.zip"
+  handler         = "migrate.lambda_handler"
+  runtime         = "python3.12"
+  timeout_seconds = 120
+  memory_size     = 512
+  code_sha256     = filebase64sha256("migrate.zip")
+  vpc_config = {
+    subnet_ids         = module.vpc.private_subnets
+    security_group_ids = [module.metadata_store_lambda_security_group.security_group_id]
+  }
+  plaintext_env_vars = {
+    DATABASE_URL = "postgres://lambda_user@${aws_rds_cluster.metadata_store.endpoint}:5432/catalogue?sslmode=require"
+    USE_IAM_AUTH = true
+    TEST         = var.environment == "prod"
   }
   tags = {}
 }

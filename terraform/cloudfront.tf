@@ -68,6 +68,8 @@ resource "aws_cloudfront_distribution" "site" {
     }
   }
 
+  web_acl_id = aws_wafv2_web_acl.cloudfront_web_acl.arn
+
   origin {
     domain_name              = module.metadata_store_static_files.s3_bucket_regional_domain_name
     origin_id                = local.s3_origin_name
@@ -138,4 +140,74 @@ resource "aws_cloudwatch_log_delivery" "access_logs_delivery" {
   region                   = local.us_east_1
   delivery_source_name     = aws_cloudwatch_log_delivery_source.access_logs_source.name
   delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront_logs_destination.arn
+}
+
+
+resource "aws_wafv2_web_acl" "cloudfront_web_acl" {
+  region = local.us_east_1
+  name   = "${var.environment}-wafwebacl-metadata-store-website"
+  scope  = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "AntiDDOS"
+    priority = 2
+
+    override_action {
+      count {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAntiDDoSRuleSet"
+        vendor_name = "AWS"
+
+        managed_rule_group_configs {
+          aws_managed_rules_anti_ddos_rule_set {
+            client_side_action_config {
+              challenge {
+                usage_of_action = "DISABLED"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AntiDDOS"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimit"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 10000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimit"
+      sampled_requests_enabled   = true
+    }
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "WAFRules"
+    sampled_requests_enabled   = true
+  }
 }

@@ -47,8 +47,8 @@ authentication with Cognito, JWT-based API access, and production-ready AWS infr
 3. **Create a `.env` file** (see example below):
    ```env
    ISSUER=https://test.auth.example.com                                      <aws:dri> <region:eu-west-2>
-   export COGNITO_CLIENT_ID=test
-   export COGNITO_SECRET=test
+   export CLIENT_ID=test
+   export CLIENT_SECRET=test
    export APP_BASE_URL=http://localhost:8080/test
    export PROXY_URL=https://proxy.example.com
    ```
@@ -82,8 +82,8 @@ authentication with Cognito, JWT-based API access, and production-ready AWS infr
 | `APP_BASE_URL`        | Yes      | Base URL for the application (e.g., `http://localhost:8000`)                               |
 | `DATABASE_URL`        | No       | Database connection string (defaults to SQLite)                                            |
 | `ISSUER`              | For Auth | Cognito token issuer (e.g., `https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_xxxxx`) |
-| `COGNITO_CLIENT_ID`   | For Auth | Cognito App Client ID                                                                      |
-| `COGNITO_SECRET`      | For Auth | Cognito App Client Secret (if using credential flow)                                       |
+| `CLIENT_ID`   | For Auth | Cognito App Client ID                                                                      |
+| `CLIENT_SECRET`      | For Auth | Cognito App Client Secret (if using credential flow)                                       |
 | `ALLOWED_HOSTS`       | No       | Comma-separated list of allowed host names                                                 |
 | `SECURE_SSL_REDIRECT` | No       | Set to `True` in production to enforce HTTPS                                               |
 
@@ -120,8 +120,8 @@ The application includes 16 Django models for comprehensive metadata management:
 ```bash
 # Set environment variables for OAuth
 export ISSUER="https://your-issuer.example.com"
-export COGNITO_CLIENT_ID="your-client-id"
-export COGNITO_SECRET="your-secret"
+export CLIENT_ID="your-client-id"
+export CLIENT_SECRET="your-secret"
 export APP_BASE_URL="http://localhost:8000"
 export PROXY_URL="https://your-proxy.example.com"
 export DATABASE_URL=postgres://postgres@localhost:5432/catalogue

@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from sysconfig import get_path
 
-from django.conf.global_settings import APPEND_SLASH
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,9 +17,10 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
 API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "")
-PROXY_URL = os.environ.get("PROXY_URL", "").rstrip("/")
-COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID")
-COGNITO_SECRET = os.environ.get("COGNITO_SECRET")
+ACCESS_TOKEN_URL = os.environ.get("ACCESS_TOKEN_URL", "").rstrip("/")
+LOGOUT_BASE_URL = os.environ.get("LOGOUT_BASE_URL", "").rstrip("/")
+CLIENT_ID = os.environ.get("CLIENT_ID")
+CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
 ISSUER = os.environ.get("ISSUER")
 
 if not DEBUG:

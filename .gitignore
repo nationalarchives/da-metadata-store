@@ -5,3 +5,5 @@ terraform/metadata-store.zip
 migrate.zip
 .terraform
 __pycache__/
+tests/e2e/node_modules/*
+terraform/templates/lambda/*

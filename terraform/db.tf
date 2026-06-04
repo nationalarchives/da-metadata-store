@@ -1,13 +1,3 @@
-resource "aws_secretsmanager_secret" "rds_password" {
-  name                    = "${var.app_name}/rds/master-password"
-  description             = "Master password for ${var.app_name} Aurora cluster"
-  recovery_window_in_days = 7
-
-  tags = {
-    Name = "rds-master-password"
-  }
-}
-
 resource "aws_db_subnet_group" "metadata_store" {
   name       = "${var.app_name}-subnet-group"
   subnet_ids = module.vpc.private_subnets
@@ -26,8 +16,8 @@ resource "aws_rds_cluster" "metadata_store" {
   engine                              = "aurora-postgresql"
   engine_version                      = "17.7"
   database_name                       = "metadata_store"
-  master_username                     = "postgres"
   manage_master_user_password         = true
+  deletion_protection                 = true
   port                                = 5432
   db_subnet_group_name                = aws_db_subnet_group.metadata_store.name
   vpc_security_group_ids              = [module.db_security_group.security_group_id]
@@ -65,7 +55,7 @@ resource "aws_rds_cluster_instance" "metadata_store" {
   publicly_accessible        = false
   auto_minor_version_upgrade = true
   monitoring_interval        = 0
-
+  db_subnet_group_name       = aws_db_subnet_group.metadata_store.name
   tags = {
     Name = "${var.app_name}-instance-1"
   }
