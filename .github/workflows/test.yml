@@ -23,3 +23,8 @@ jobs:
           npm install
           npm t
         working-directory: tests/e2e
+        env:
+          USER: user1
+          PASSWORD: password
+          TOKEN_ENDPOINT: http://oidc/token
+          CLIENT_ID: demo-client CLIENT_SECRET=demo-secret
