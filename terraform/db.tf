@@ -9,6 +9,7 @@ resource "aws_db_subnet_group" "metadata_store" {
 
 resource "random_string" "snapshot_suffix" {
   length = 5
+  special = false
 }
 
 resource "aws_rds_cluster" "metadata_store" {

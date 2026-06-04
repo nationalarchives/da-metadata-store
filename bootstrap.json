@@ -69,6 +69,7 @@
                     "shield:*",
                     "wafv2:*",
                     "rds:*",
+                    "route53resolver:*",
                     "s3:*",
                     "sqs:*",
                     "ssm:GetParameter"
@@ -80,6 +81,7 @@
                   "Effect": "Allow",
                   "Action": [
                     "iam:AttachRolePolicy",
+                    "iam:CreateInstanceProfile",
                     "iam:CreatePolicy",
                     "iam:CreateRole",
                     "iam:DeletePolicy",
@@ -107,6 +109,9 @@
                     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
                     {
                       "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:instance-profile/*"
                     },
                     {
                       "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/*"
