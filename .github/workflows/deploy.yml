@@ -53,6 +53,7 @@ jobs:
         working-directory: terraform
         run: |
           terraform init
+          terraform workspace select intg
           terraform apply -auto-approve
         env:
           TF_VAR_app_secret: ${{ secrets.APP_SECRET }}

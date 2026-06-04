@@ -1,5 +1,5 @@
 module "metadata_store_lambda" {
-  source        = "../../../da/da-terraform-modules/lambda"
+  source        = "git::https://github.com/nationalarchives/da-terraform-modules//lambda?ref=changes-for-metadata-store"
   function_name = var.app_name
   policies = {
     metadata_store_policy = templatefile("${path.module}/templates/iam/policies/metadata_store.json.tpl", {
@@ -43,7 +43,7 @@ data "archive_file" "catalogue_updates_code" {
 }
 
 module "catalogue_updates_lambda" {
-  source        = "../../../da/da-terraform-modules/lambda"
+  source        = "git::https://github.com/nationalarchives/da-terraform-modules//lambda?ref=changes-for-metadata-store"
   function_name = "${var.environment}-catalogue-updates"
   policies = {
     catalogue_updates_policy = templatefile("${path.module}/templates/iam/policies/catalogue_updates.json.tpl", {
@@ -74,7 +74,7 @@ data "archive_file" "catalogue_cache_writer_code" {
 
 
 module "catalogue_write_cache_lambda" {
-  source        = "../../../da/da-terraform-modules/lambda"
+  source        = "git::https://github.com/nationalarchives/da-terraform-modules//lambda?ref=changes-for-metadata-store"
   function_name = "${var.environment}-catalogue-write-cache"
   policies = {
     catalogue_write_cache_policy = templatefile("${path.module}/templates/iam/policies/catalogue_write_cache.json.tpl", {
@@ -96,7 +96,7 @@ module "catalogue_write_cache_lambda" {
 }
 
 module "data_migrations_lambda" {
-  source        = "../../../da/da-terraform-modules/lambda"
+  source        = "git::https://github.com/nationalarchives/da-terraform-modules//lambda?ref=changes-for-metadata-store"
   function_name = "${var.environment}-data-migration"
   policies = {
     data_migrations_policy = templatefile("${path.module}/templates/iam/policies/metadata_store.json.tpl", {

@@ -18,7 +18,7 @@ locals {
 }
 
 module "vpc" {
-  source      = "../../../da/da-terraform-modules/vpc"
+  source      = "git::https://github.com/nationalarchives/da-terraform-modules//vpc?ref=changes-for-metadata-store"
   environment = var.environment
   interface_endpoints = {
     execute_api = {

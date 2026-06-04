@@ -3,7 +3,7 @@ locals {
   static_files_bucket_name = "${var.app_name}-static-files-${data.aws_caller_identity.current.account_id}-eu-west-2-an"
 }
 module "metadata_store_static_files" {
-  source            = "../../../da/da-terraform-modules/s3"
+  source            = "git::https://github.com/nationalarchives/da-terraform-modules//s3?ref=changes-for-metadata-store"
   bucket_name       = local.static_files_bucket_name
   bucket_namespace  = "account-regional"
   create_log_bucket = false
@@ -14,7 +14,7 @@ module "metadata_store_static_files" {
 }
 
 module "metadata_store_cache" {
-  source            = "../../../da/da-terraform-modules/s3"
+  source            = "git::https://github.com/nationalarchives/da-terraform-modules//s3?ref=changes-for-metadata-store"
   bucket_name       = local.cache_bucket_name
   bucket_namespace  = "account-regional"
   create_log_bucket = false
