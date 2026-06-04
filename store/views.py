@@ -5,8 +5,10 @@ import re
 import urllib.parse
 
 from auditlog.models import LogEntry
+
 # noinspection PyUnresolvedReferences
 from authlib.integrations.django_client import OAuth
+
 # noinspection PyUnresolvedReferences
 from authlib.integrations.django_oauth2 import ResourceProtector
 from django import forms
