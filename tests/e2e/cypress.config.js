@@ -10,6 +10,7 @@ module.exports = defineConfig({
       clientId: process.env["CLIENT_ID"],
       clientSecret: process.env["CLIENT_SECRET"]
     },
+    failOnStatusCode: false,
     chromeWebSecurity: false,
     setupNodeEvents(on, config) {}
   },

@@ -37,7 +37,7 @@ oauth.register(
     client_id=settings.CLIENT_ID,
     client_secret=settings.CLIENT_SECRET,
     access_token_url=access_token_url,
-    client_kwargs={"scopwith_metadatae": "openid email profile"},
+    client_kwargs={"scope": "openid email profile"},
 )
 
 _validator = None
@@ -67,9 +67,7 @@ def user_login(request):
 
 def auth(request):
     token = oauth.cognito.authorize_access_token(request)
-
     user_info = token["userinfo"]
-    print(user_info)
     request.session["user"] = user_info
     email = user_info.get("email", user_info["sub"])
     first_name = user_info.get("given_name", "")
