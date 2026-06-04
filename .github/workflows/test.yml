@@ -29,4 +29,4 @@ jobs:
           TOKEN_ENDPOINT: http://oidc/token
           CLIENT_ID: demo-client
           CLIENT_SECRET: demo-secret
-          CYPRESS_BASE_URL: http://localhost:8000
+          CYPRESS_BASE_URL: http://localhost:8000/
