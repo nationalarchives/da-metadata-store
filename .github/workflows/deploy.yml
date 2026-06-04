@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - live
+      - wip
 permissions:
   id-token: write
   contents: read
@@ -11,6 +11,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: intg
     env:
       AWS_REGION: eu-west-2
     steps:
@@ -57,7 +58,7 @@ jobs:
         run: | 
           docker compose up -d --build
           docker compose exec app tna-build
-          mkdir site
+          mkdir -p site
           cp node_modules/@nationalarchives/frontend/nationalarchives/all.js node_modules/@nationalarchives/frontend/nationalarchives/all.js.map node_modules/@nationalarchives/frontend/nationalarchives/assets/images/favicon.ico node_modules/@nationalarchives/frontend/nationalarchives/assets/fonts/fa-solid-900.woff2 site
           cd site
           aws s3 sync . metadata-store-static-files-$ACCOUNT_NUMBER-eu-west-2-an
