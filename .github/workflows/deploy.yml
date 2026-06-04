@@ -37,6 +37,7 @@ jobs:
           zip -rA migrate.zip tests/test_scripts
           zip migrate.zip migrate.py
           mv migrate.zip terraform
+          poetry install
           zappa package dev -o terraform/metadata-store.zip
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
