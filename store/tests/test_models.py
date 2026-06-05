@@ -104,7 +104,6 @@ class RelationshipsModelTest(TestCase):
 
 
 class RelationshipsQueryTest(TestCase):
-
     def setUp(self):
         self.meta1 = Metadata.objects.create(
             id="meta-001",

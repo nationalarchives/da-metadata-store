@@ -33,7 +33,7 @@ class HomeViewTest(AuthenticatedViewTest):
         self.client.force_login(self.user)
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('Search Metadata Store', response.text)
+        self.assertInHTML("Search Metadata Store", response.text)
 
 
 class ResultsViewTest(AuthenticatedViewTest):
@@ -54,26 +54,25 @@ class ResultsViewTest(AuthenticatedViewTest):
         self.client.force_login(self.user)
         response = self.client.get("/results?q=")
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('REF-002', response.text)
-        self.assertInHTML('REF-001', response.text)
+        self.assertInHTML("REF-002", response.text)
+        self.assertInHTML("REF-001", response.text)
 
     def test_results_view_authenticated_with_query(self):
         self.client.force_login(self.user)
         response = self.client.get("/results?q=REF-001")
         self.assertEqual(response.status_code, 200)
-        self.assertNotInHTML('REF-002', response.text)
-        self.assertInHTML('REF-001', response.text)
+        self.assertNotInHTML("REF-002", response.text)
+        self.assertInHTML("REF-001", response.text)
 
     def test_results_view_case_insensitive(self):
         self.client.force_login(self.user)
         response = self.client.get("/results?q=ref-001")
         self.assertEqual(response.status_code, 200)
-        self.assertNotInHTML('REF-002', response.text)
-        self.assertInHTML('REF-001', response.text)
+        self.assertNotInHTML("REF-002", response.text)
+        self.assertInHTML("REF-001", response.text)
 
 
 class UploadViewTest(AuthenticatedViewTest):
-
     def test_upload_view_get_requires_login(self):
         response = self.client.get(f"/upload/{self.metadata.id}")
         self.assertEqual(response.status_code, 302)
@@ -82,7 +81,7 @@ class UploadViewTest(AuthenticatedViewTest):
         self.client.force_login(self.user)
         response = self.client.get(f"/upload/{self.metadata.id}")
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('Upload json file', response.text)
+        self.assertInHTML("Upload json file", response.text)
 
     def test_upload_view_post_requires_login(self):
         response = self.client.post(f"/upload/{self.metadata.id}")
@@ -100,7 +99,6 @@ class UploadViewTest(AuthenticatedViewTest):
 
 
 class SubmittedViewTest(AuthenticatedViewTest):
-
     def test_submitted_view_requires_login(self):
         response = self.client.get(f"/submitted/{self.metadata.id}")
         self.assertEqual(response.status_code, 302)
@@ -112,7 +110,6 @@ class SubmittedViewTest(AuthenticatedViewTest):
 
 
 class RecordsViewTest(AuthenticatedViewTest):
-
     def setUp(self):
         super().setUp()
         self.metadata2 = Metadata.objects.create(

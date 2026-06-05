@@ -3,7 +3,6 @@ from store.models import Metadata
 
 
 class MetadataImportTest(TestCase):
-
     def test_metadata_creation_with_json(self):
         payload = {
             "id": "meta-001",

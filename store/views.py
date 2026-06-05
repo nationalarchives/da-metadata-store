@@ -183,13 +183,15 @@ def upload(request, record_id):
         else:
             errors = form.errors
             if "json_edit" in errors:
-                error_summary.append({"text": "A json file is required", "href": "#json_edit"})
+                error_summary.append(
+                    {"text": "A json file is required", "href": "#json_edit"}
+                )
             if "reason" in errors:
-                error_summary.append({"text": "A reason is required", "href": "#reason"})
+                error_summary.append(
+                    {"text": "A reason is required", "href": "#reason"}
+                )
     change_reasons = ChangeReason.objects.all()
-    reasons = [
-        {"value": reason.id, "text": reason.reason} for reason in change_reasons
-    ]
+    reasons = [{"value": reason.id, "text": reason.reason} for reason in change_reasons]
     reasons.insert(0, {"value": "", "text": ""})
     return render(
         request,
@@ -198,7 +200,7 @@ def upload(request, record_id):
             "record_id": record_id,
             "reasons": reasons,
             "errors": errors,
-            "error_summary": error_summary
+            "error_summary": error_summary,
         },
     )
 
