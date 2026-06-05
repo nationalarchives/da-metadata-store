@@ -11,12 +11,15 @@ resource "aws_cognito_user_pool" "sso_user_pool" {
 }
 
 resource "aws_cognito_user_pool_client" "sso_client" {
-  count                        = var.use_entra_for_sso ? 0 : 1
-  name                         = "${var.app_name}-sso-user-pool-client"
-  user_pool_id                 = aws_cognito_user_pool.sso_user_pool[count.index].id
-  generate_secret              = true
-  callback_urls                = ["https://${var.app_name}.auth.${data.aws_region.current.region}.amazoncognito.com/oauth2/idpresponse"]
-  supported_identity_providers = ["COGNITO"]
+  count                                = var.use_entra_for_sso ? 0 : 1
+  name                                 = "${var.app_name}-sso-user-pool-client"
+  user_pool_id                         = aws_cognito_user_pool.sso_user_pool[count.index].id
+  generate_secret                      = true
+  callback_urls                        = ["https://${var.app_name}.auth.${data.aws_region.current.region}.amazoncognito.com/oauth2/idpresponse"]
+  supported_identity_providers         = ["COGNITO"]
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["email", "openid"]
+  allowed_oauth_flows_user_pool_client = true
 }
 
 resource "aws_cognito_user_pool" "main" {
