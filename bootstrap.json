@@ -68,6 +68,7 @@
                     "rds:*",
                     "route53:*",
                     "route53resolver:*",
+                    "secretsmanager:*",
                     "s3:*",
                     "scheduler:*",
                     "shield:*",
