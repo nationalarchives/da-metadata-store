@@ -8,7 +8,7 @@ resource "aws_db_subnet_group" "metadata_store" {
 }
 
 resource "random_string" "snapshot_suffix" {
-  length = 5
+  length  = 5
   special = false
 }
 
@@ -33,6 +33,7 @@ resource "aws_rds_cluster" "metadata_store" {
   copy_tags_to_snapshot               = true
   iam_database_authentication_enabled = true
   apply_immediately                   = true
+  kms_key_id                          = module.rds_kms.kms_key_arn
   serverlessv2_scaling_configuration {
     max_capacity             = 1.0
     min_capacity             = 0.0
@@ -40,6 +41,15 @@ resource "aws_rds_cluster" "metadata_store" {
   }
   tags = {
     Name = "${var.app_name}-cluster"
+  }
+}
+
+module "rds_kms" {
+  source   = "git::https://github.com/nationalarchives/da-terraform-modules//kms"
+  key_name = "${var.app_name}-rds"
+  default_policy_variables = {
+    ci_roles   = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/MetadataStoreInfrastructureRole"],
+    user_roles = [data.aws_ssm_parameter.admin_role.value]
   }
 }
 

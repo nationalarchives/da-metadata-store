@@ -30,3 +30,6 @@ jobs:
           CLIENT_ID: demo-client
           CLIENT_SECRET: demo-secret
           CYPRESS_BASE_URL: http://localhost:8000/
+      - run:
+          terraform fmt --check --recursive
+        working-directory: terraform
