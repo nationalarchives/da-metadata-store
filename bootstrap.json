@@ -72,9 +72,7 @@
                     "scheduler:*",
                     "shield:*",
                     "sqs:*",
-                    "ssm:GetParameter",
-                    "ssm:PutParameter",
-                    "ssm:AddTagsToResource",
+                    "ssm:*",
                     "wafv2:*"
                   ],
                   "Resource": "*"
