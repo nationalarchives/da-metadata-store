@@ -70,6 +70,7 @@ describe('template spec', () => {
         }
         cy.writeFile(path, JSON.stringify(jsonToUpload))
         cy.get('input[type=file]').selectFile(path)
+        cy.get("#reason").select("043dee8b-afca-44c3-affb-6eabcaf4366e")
         cy.get("form[method='POST']").submit()
 
         cy.get("h1").should("contain.text", "Record ABC/456 has been updated")
