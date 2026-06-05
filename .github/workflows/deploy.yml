@@ -75,7 +75,7 @@ jobs:
           mkdir -p site
           cp node_modules/@nationalarchives/frontend/nationalarchives/all.js node_modules/@nationalarchives/frontend/nationalarchives/all.js.map node_modules/@nationalarchives/frontend/nationalarchives/assets/images/favicon.ico node_modules/@nationalarchives/frontend/nationalarchives/assets/fonts/fa-solid-900.woff2 site
           cd site
-          aws s3 sync . s3://metadata-store-static-files-$ACCOUNT_NUMBER-eu-west-2-an
+          aws s3 sync . s3://$ENVIRONMENT-metadata-store-static-files-$ACCOUNT_NUMBER-eu-west-2-an
         env:
           ACCOUNT_NUMBER: ${{ secrets.ACCOUNT_NUMBER }}
 
