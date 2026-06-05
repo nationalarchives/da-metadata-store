@@ -166,6 +166,8 @@ def handle_uploaded_file(email, f, reason, record_id):
 
 @login_required
 def upload(request, record_id):
+    errors = {}
+    error_summary = []
     if request.method == "POST":
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
@@ -178,16 +180,25 @@ def upload(request, record_id):
             return HttpResponseRedirect(
                 reverse("submitted", kwargs={"record_id": record_id})
             )
+        else:
+            errors = form.errors
+            if "json_edit" in errors:
+                error_summary.append({"text": "A json file is required", "href": "#json_edit"})
+            if "reason" in errors:
+                error_summary.append({"text": "A reason is required", "href": "#reason"})
     change_reasons = ChangeReason.objects.all()
-
+    reasons = [
+        {"value": reason.id, "text": reason.reason} for reason in change_reasons
+    ]
+    reasons.insert(0, {"value": "", "text": ""})
     return render(
         request,
         "upload.html",
         {
             "record_id": record_id,
-            "reasons": [
-                {"value": reason.id, "text": reason.reason} for reason in change_reasons
-            ],
+            "reasons": reasons,
+            "errors": errors,
+            "error_summary": error_summary
         },
     )
 

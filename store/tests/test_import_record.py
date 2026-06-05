@@ -3,10 +3,8 @@ from store.models import Metadata
 
 
 class MetadataImportTest(TestCase):
-    """Test Metadata model import and management"""
 
     def test_metadata_creation_with_json(self):
-        """Test creating metadata with JSON payload"""
         payload = {
             "id": "meta-001",
             "type": "document",
@@ -26,8 +24,7 @@ class MetadataImportTest(TestCase):
         self.assertEqual(metadata.metadata["title"], "Test Document")
 
     def test_metadata_retrieval(self):
-        """Test retrieving metadata by ID"""
-        metadata = Metadata.objects.create(
+        Metadata.objects.create(
             id="meta-test",
             type="record",
             metadata={"title": "Test"},
@@ -36,13 +33,11 @@ class MetadataImportTest(TestCase):
         self.assertEqual(retrieved.type, "record")
 
     def test_metadata_update(self):
-        """Test updating metadata"""
         metadata = Metadata.objects.create(
             id="meta-update",
             type="document",
             metadata={"title": "Original"},
         )
-        # Update metadata
         metadata.metadata["title"] = "Updated"
         metadata.save()
 
@@ -50,7 +45,6 @@ class MetadataImportTest(TestCase):
         self.assertEqual(retrieved.metadata["title"], "Updated")
 
     def test_metadata_bulk_import(self):
-        """Test bulk importing metadata"""
         payloads = [
             {"id": f"meta-{i}", "type": "document", "metadata": {"title": f"Doc {i}"}}
             for i in range(5)
@@ -66,7 +60,6 @@ class MetadataImportTest(TestCase):
         self.assertEqual(Metadata.objects.count(), 5)
 
     def test_metadata_with_mastered_flag(self):
-        """Test metadata with is_mastered flag"""
         metadata = Metadata.objects.create(
             id="meta-mastered",
             type="document",
@@ -78,7 +71,6 @@ class MetadataImportTest(TestCase):
         self.assertEqual(metadata.master_source, "source-001")
 
     def test_metadata_timestamps(self):
-        """Test that created_at and updated_at are set"""
         metadata = Metadata.objects.create(
             id="meta-time",
             type="document",
@@ -92,7 +84,6 @@ class MetadataImportTest(TestCase):
         )
 
     def test_metadata_null_optional_fields(self):
-        """Test metadata with null optional fields"""
         metadata = Metadata.objects.create(
             id="meta-minimal",
             type="record",
@@ -103,7 +94,6 @@ class MetadataImportTest(TestCase):
         self.assertIsNone(metadata.master_source)
 
     def test_metadata_complex_json_structure(self):
-        """Test metadata with complex JSON structure"""
         complex_metadata = {
             "title": "Complex Document",
             "nested": {
@@ -112,7 +102,7 @@ class MetadataImportTest(TestCase):
             },
             "array": [1, 2, 3],
         }
-        metadata = Metadata.objects.create(
+        Metadata.objects.create(
             id="meta-complex",
             type="document",
             metadata=complex_metadata,
@@ -122,7 +112,6 @@ class MetadataImportTest(TestCase):
         self.assertEqual(len(retrieved.metadata["array"]), 3)
 
     def test_metadata_query_by_type(self):
-        """Test querying metadata by type"""
         Metadata.objects.create(
             id="doc-001",
             type="document",

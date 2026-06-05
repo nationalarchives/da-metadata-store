@@ -13,13 +13,11 @@ class MetadataModelTest(TestCase):
         )
 
     def test_metadata_creation(self):
-        """Test creating a Metadata record"""
         self.assertEqual(self.metadata.id, "meta-001")
         self.assertEqual(self.metadata.type, "document")
         self.assertIn("title", self.metadata.metadata)
 
     def test_metadata_unique_id(self):
-        """Test that metadata ID is unique"""
         with self.assertRaises(Exception):
             Metadata.objects.create(
                 id="meta-001",
@@ -28,11 +26,9 @@ class MetadataModelTest(TestCase):
             )
 
     def test_metadata_json_field(self):
-        """Test metadata JSON field storage"""
         self.assertEqual(self.metadata.metadata["title"], "Test Document")
 
     def test_metadata_optional_fields(self):
-        """Test optional fields"""
         metadata = Metadata.objects.create(
             id="meta-002",
             type="record",
@@ -45,7 +41,6 @@ class MetadataModelTest(TestCase):
 
 class RelationshipTypesModelTest(TestCase):
     def test_relationship_types_creation(self):
-        """Test creating a RelationshipTypes"""
         rel_type = RelationshipTypes.objects.create(
             type="has_replacement",
             to_label="replaces",
@@ -54,7 +49,6 @@ class RelationshipTypesModelTest(TestCase):
         self.assertEqual(rel_type.type, "has_replacement")
 
     def test_relationship_types_labels(self):
-        """Test relationship type labels"""
         rel_type = RelationshipTypes.objects.create(
             type="parent_child",
             to_label="child",
@@ -79,7 +73,6 @@ class RelationshipsModelTest(TestCase):
         )
 
     def test_relationships_creation(self):
-        """Test creating a Relationships record"""
         rel = Relationships.objects.create(
             from_asset=self.metadata1,
             to_asset=self.metadata2,
@@ -90,7 +83,6 @@ class RelationshipsModelTest(TestCase):
         self.assertEqual(rel.type, self.rel_type)
 
     def test_relationships_with_attributes(self):
-        """Test relationships with attributes"""
         attributes = {"reason": "superseded"}
         rel = Relationships.objects.create(
             from_asset=self.metadata1,
@@ -101,7 +93,6 @@ class RelationshipsModelTest(TestCase):
         self.assertEqual(rel.attributes["reason"], "superseded")
 
     def test_relationships_cascade_delete(self):
-        """Test that deleting metadata deletes relationships"""
         rel = Relationships.objects.create(
             from_asset=self.metadata1,
             to_asset=self.metadata2,
@@ -113,7 +104,6 @@ class RelationshipsModelTest(TestCase):
 
 
 class RelationshipsQueryTest(TestCase):
-    """Test querying relationships"""
 
     def setUp(self):
         self.meta1 = Metadata.objects.create(
@@ -133,13 +123,11 @@ class RelationshipsQueryTest(TestCase):
         )
 
     def test_relationships_retrieval(self):
-        """Test retrieving relationships for metadata"""
-        rel = Relationships.objects.create(
+        Relationships.objects.create(
             from_asset=self.meta1,
             to_asset=self.meta2,
             type=self.rel_type,
         )
-        # Test that we can query the relationships
         rels = Relationships.objects.filter(from_asset=self.meta1)
         self.assertEqual(rels.count(), 1)
         self.assertEqual(rels.first().to_asset.id, "meta-002")
@@ -147,7 +135,6 @@ class RelationshipsQueryTest(TestCase):
 
 class ChangeReasonModelTest(TestCase):
     def test_change_reason_creation(self):
-        """Test creating a ChangeReason"""
         reason = ChangeReason.objects.create(
             id="reason-001", reason="Closing an open record"
         )
@@ -155,12 +142,10 @@ class ChangeReasonModelTest(TestCase):
         self.assertEqual(reason.reason, "Closing an open record")
 
     def test_change_reason_unique_id(self):
-        """Test that ChangeReason ID is unique"""
         ChangeReason.objects.create(id="reason-001", reason="Test Reason")
         with self.assertRaises(Exception):
             ChangeReason.objects.create(id="reason-001", reason="Another Reason")
 
     def test_change_reason_text_field(self):
-        """Test that reason field stores text properly"""
         reason = ChangeReason.objects.create(id="reason-test", reason="Test Reason")
         self.assertEqual(reason.reason, "Test Reason")

@@ -2,16 +2,25 @@ name: Deploy
 
 on:
   push:
-    branches:
-      - wip
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: 'Environment'
+        required: true
+        options:
+          - intg
+          - prod
+        default: 'intg'
 permissions:
   id-token: write
   contents: read
-
+env:
+  ENVIRONMENT: ${{ inputs.environment || 'intg' }}
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: intg
+    environment: ${{ inputs.environment || 'intg' }}
     env:
       AWS_REGION: eu-west-2
     steps:
@@ -53,8 +62,8 @@ jobs:
         working-directory: terraform
         run: |
           terraform init
-          terraform workspace select intg
-          terraform apply -auto-approve -var-file intg.auto.tfvars
+          terraform workspace select $ENVIRONMENT
+          terraform apply -auto-approve -var-file $ENVIRONMENT.auto.tfvars
         env:
           TF_VAR_app_secret: ${{ secrets.APP_SECRET }}
           TF_VAR_saml_tenant: ${{ secrets.SAML_TENANT }}

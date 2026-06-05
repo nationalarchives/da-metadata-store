@@ -15,7 +15,6 @@ resource "aws_cognito_user_pool_client" "sso_client" {
   name                         = "${var.app_name}-sso-user-pool-client"
   user_pool_id                 = aws_cognito_user_pool.sso_user_pool[count.index].id
   generate_secret              = true
-  allowed_oauth_scopes         = ["openid", "email", "profile"]
   callback_urls                = ["https://${var.app_name}.auth.${data.aws_region.current.region}.amazoncognito.com/oauth2/idpresponse"]
   supported_identity_providers = ["COGNITO"]
 }
