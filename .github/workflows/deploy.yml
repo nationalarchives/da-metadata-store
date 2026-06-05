@@ -54,7 +54,7 @@ jobs:
         run: |
           terraform init
           terraform workspace select intg
-          terraform apply -auto-approve -var-file $ENVIRONMENT.auto.tfvars
+          terraform apply -auto-approve -var-file intg.auto.tfvars
         env:
           TF_VAR_app_secret: ${{ secrets.APP_SECRET }}
           TF_VAR_saml_tenant: ${{ secrets.SAML_TENANT }}
