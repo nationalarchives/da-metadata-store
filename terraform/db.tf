@@ -28,7 +28,7 @@ resource "aws_rds_cluster" "metadata_store" {
   preferred_maintenance_window        = "wed:03:08-wed:03:38"
   skip_final_snapshot                 = false
   final_snapshot_identifier           = "${var.app_name}-final-snapshot-${random_string.snapshot_suffix.result}"
-  storage_encrypted                   = false
+  storage_encrypted                   = true
   enabled_cloudwatch_logs_exports     = ["postgresql"]
   copy_tags_to_snapshot               = true
   iam_database_authentication_enabled = true
