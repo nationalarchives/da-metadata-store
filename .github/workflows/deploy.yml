@@ -43,8 +43,9 @@ jobs:
           docker compose up -d --build
           docker compose exec app tna-build
           mkdir -p site
-          cp node_modules/@nationalarchives/frontend/nationalarchives/all.js node_modules/@nationalarchives/frontend/nationalarchives/all.js.map node_modules/@nationalarchives/frontend/nationalarchives/assets/images/favicon.ico node_modules/@nationalarchives/frontend/nationalarchives/assets/fonts/fa-solid-900.woff2 site
-          cd site
+          cd node_modules/@nationalarchives/frontend/nationalarchives
+          cp all.js all.js.map favicon.ico fa-solid-900.woff2 all.css font-awesome.css print.css ie.css ../../../../site
+          cd ../../../../site
           aws s3 sync . s3://$ENVIRONMENT-metadata-store-static-files-$ACCOUNT_NUMBER-eu-west-2-an/static/
           aws lambda invoke --function-name $ENVIRONMENT-data-migration --cli-binary-format raw-in-base64-out --payload {}  out
         env:
