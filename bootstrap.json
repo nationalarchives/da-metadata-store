@@ -75,16 +75,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-data-migration"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-catalogue-write-cache"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-metadata-store"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-catalogue-updates"
+                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:*"
                     }
                   ]
                 },
