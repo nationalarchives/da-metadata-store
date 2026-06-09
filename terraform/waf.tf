@@ -41,8 +41,8 @@ resource "aws_wafv2_web_acl" "web_acl" {
     }
     statement {
       size_constraint_statement {
-        comparison_operator = "LT"
-        size                = 8192000
+        comparison_operator = "GT"
+        size                = 8192
         field_to_match {
           body {}
         }
@@ -141,3 +141,26 @@ resource "aws_wafv2_web_acl" "web_acl" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "waf_logs" {
+  for_each = local.web_acls
+  region   = each.value.region
+  name     = "aws-waf-logs-${var.environment}-${each.key}"
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "waf_logging_aws_managed_rules" {
+  for_each                = local.web_acls
+  region                  = each.value.region
+  log_destination_configs = [aws_cloudwatch_log_group.waf_logs[each.key].arn]
+  resource_arn            = aws_wafv2_web_acl.web_acl[each.key].arn
+}
+
+resource "aws_cloudwatch_log_resource_policy" "cloudwatch_log_policy" {
+  for_each = local.web_acls
+  region   = each.value.region
+  policy_document = templatefile("${path.module}/templates/iam/policies/cloudwatch_log_delivery.json.tpl", {
+    account_id    = data.aws_caller_identity.current.account_id
+    region        = each.value.region
+    log_group_arn = aws_cloudwatch_log_group.waf_logs[each.key].arn
+  })
+  policy_name = "${var.environment}-cloudwatch-log-policy"
+}
