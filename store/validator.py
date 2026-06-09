@@ -19,7 +19,4 @@ class CognitoJWTBearerTokenValidator(JWTBearerTokenValidator):
         else:
             super().__init__(KeySet.import_key_set({"keys": []}), issuer="")
 
-        self.claims_options = {
-            "exp": {"essential": True},
-            "client_id": {"essential": True},
-        }
+        self.claims_options = {"exp": {"essential": True}}

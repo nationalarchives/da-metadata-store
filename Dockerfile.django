@@ -1,0 +1,7 @@
+FROM ghcr.io/nationalarchives/tna-python-dev:1
+RUN chown -R 1000:1000 /home/app/
+COPY pyproject.toml poetry.lock ./
+RUN tna-build
+COPY . .
+USER 1000
+CMD ["tna-wsgi", "app:app"]

@@ -1,0 +1,225 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "Environment": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    }
+  },
+  "Resources": {
+    "MetadataStoreInfrastructureRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "MetadataStoreInfrastructureRole",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringLike": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": [
+                    {
+                      "Fn::Sub": "repo:nationalarchives/da-metadata-store:environment:${Environment}"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "MetadataStoreInfrastructurePolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "",
+                  "Effect": "Allow",
+                  "Action": [
+                    "acm:*",
+                    "apigateway:*",
+                    "cloudformation:*",
+                    "cloudfront:*",
+                    "cloudwatch:*",
+                    "cognito-idp:*",
+                    "ec2:*",
+                    "events:*",
+                    "kms:*",
+                    "logs:*",
+                    "organizations:DescribeOrganization",
+                    "rds:*",
+                    "route53:*",
+                    "route53resolver:*",
+                    "s3:*",
+                    "scheduler:*",
+                    "shield:*",
+                    "sqs:*",
+                    "ssm:*",
+                    "wafv2:*"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Sid": "",
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:*"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-data-migration"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-catalogue-write-cache"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-metadata-store"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:eu-west-2:${AWS::AccountId}:function:${Environment}-catalogue-updates"
+                    }
+                  ]
+                },
+                {
+                  "Sid": "",
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:AddRoleToInstanceProfile",
+                    "iam:AttachRolePolicy",
+                    "iam:CreateInstanceProfile",
+                    "iam:CreatePolicy",
+                    "iam:CreatePolicyVersion",
+                    "iam:CreateRole",
+                    "iam:DeleteInstanceProfile",
+                    "iam:DeletePolicy",
+                    "iam:DeletePolicyVersion",
+                    "iam:DeleteRole",
+                    "iam:DetachRolePolicy",
+                    "iam:DeleteRolePolicy",
+                    "iam:GetOpenIDConnectProvider",
+                    "iam:GetInstanceProfile",
+                    "iam:GetPolicy",
+                    "iam:GetPolicyVersion",
+                    "iam:GetRole",
+                    "iam:GetRolePolicy",
+                    "iam:ListInstanceProfiles",
+                    "iam:ListInstanceProfileTags",
+                    "iam:ListPolicyVersions",
+                    "iam:ListRolePolicies",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListInstanceProfilesForRole",
+                    "iam:PassRole",
+                    "iam:PutRolePolicy",
+                    "iam:RemoveRoleFromInstanceProfile",
+                    "iam:TagInstanceProfile",
+                    "iam:TagPolicy",
+                    "iam:TagRole",
+                    "iam:UntagRole",
+                    "iam:UpdateRoleDescription",
+                    "iam:UpdateAssumeRolePolicy"
+                  ],
+                  "Resource": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:instance-profile/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MetadataStoreTerraformStateBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "metadata-store-terraform-state",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Status": "Enabled",
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 7
+              }
+            }
+          ]
+        }
+      }
+    },
+    "MetadataStoreTerraformStateBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "MetadataStoreTerraformStateBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:s3:::metadata-store-terraform-state"
+                },
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:s3:::metadata-store-terraform-state/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

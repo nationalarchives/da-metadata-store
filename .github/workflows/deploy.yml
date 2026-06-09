@@ -1,19 +1,29 @@
 name: Deploy
-
 on:
   push:
     branches:
-      - live
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: 'Environment'
+        required: true
+        options:
+          - intg
+          - prod
+        default: 'intg'
 permissions:
   id-token: write
   contents: read
-
+env:
+  ENVIRONMENT: ${{ inputs.environment || 'intg' }}
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'intg' }}
     env:
       AWS_REGION: eu-west-2
-
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -24,27 +34,70 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.12"
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Package Lambda with Zappa
+      - name: Copy static files
         run: |
-          zappa package dev -o terraform/metadata-store-api.zip
-
+          docker compose up -d --build
+          docker compose exec app tna-build
+          mkdir -p site
+          cd node_modules/@nationalarchives/frontend/nationalarchives
+          cp all.js all.js.map assets/images/favicon.ico assets/fonts/fa-solid-900.woff2 all.css font-awesome.css print.css ie.css ../../../../site
+          cd ../../../../site
+          aws s3 sync . s3://$ENVIRONMENT-metadata-store-static-files-$ACCOUNT_NUMBER-eu-west-2-an/static/
+          aws lambda invoke --function-name $ENVIRONMENT-data-migration --cli-binary-format raw-in-base64-out --payload {}  out
+        env:
+          ACCOUNT_NUMBER: ${{ secrets.ACCOUNT_NUMBER }}
+      - name: Build migrate lambda
+        run: |
+          python3 -m pip install --user pipx
+          pipx install poetry
+          poetry install --with dev
+          poetry run zappa package dev -o terraform/metadata-store.zip
+          
+          mkdir -p package
+          pip install --target=package .
+          pip install --target=package requests
+          cd package
+          zip -rA ../migrate.zip .
+          cd ..
+          zip -rA migrate.zip store
+          zip -rA migrate.zip tests/test_scripts
+          zip migrate.zip migrate.py
+          mv migrate.zip terraform
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
       - name: Terraform apply
         working-directory: terraform
         run: |
           terraform init
-          terraform apply -auto-approve
+          terraform workspace select $ENVIRONMENT
+          terraform apply -auto-approve -var-file $ENVIRONMENT.auto.tfvars
+        env:
+          TF_VAR_app_secret: ${{ secrets.APP_SECRET }}
+          TF_VAR_saml_tenant: ${{ secrets.SAML_TENANT }}
+          TF_VAR_entra_app_id: ${{ secrets.ENTRA_APP_ID }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_NUMBER }}:role/intg-run-e2e-tests-role
+          aws-region: 'eu-west-2'
+      - name: Run E2E tests
+        working-directory: tests/e2e
+        if: ${{ inputs.environment  != 'prod' }}
+        run: |
+          npm ci
+          npm t
+        env:
+          USER: test@test.com
+          PASSWORD_PATH: /cognito/test/password
+          TOKEN_ENDPOINT: https://intg-metadata-store.auth.eu-west-2.amazoncognito.com/oauth2/token
+          CLIENT_ID_PATH: /intg/client/api/id
+          CLIENT_SECRET_PATH: /intg/client/api/secret
+          CYPRESS_BASE_URL: https://dew0kjaqe17a2.cloudfront.net/
+          CREDENTIALS_FROM_SSM: true
+
+        

@@ -1,0 +1,22 @@
+server:
+  host: 0.0.0.0
+  port: 8001
+  debug: false
+oauth:
+  issuer: http://oidc:8001
+  audience: my-app
+  token_expiry_minutes: 60
+  clients:
+    - client_id: demo-client
+      client_secret: demo-secret
+      description: Default demo client for development
+jwt:
+  algorithm: RS256
+  keys_dir: ./keys
+session:
+  secret_key: dev-secret-key-change-in-production
+  permanent: true
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  log_token_requests: true

@@ -1,0 +1,28 @@
+[
+  {
+    "model": "store.Metadata",
+    "pk": "20726b87-33d0-4fec-b6ff-3ce76a988c84",
+    "fields": {
+      "catalogue_reference": "ABC/123",
+      "type": "BornDigital",
+      "metadata": {
+        "field1": "value1",
+        "description": "A description"
+      },
+      "updated_at": "2026-05-29 14:16:10.458888+00"
+    }
+  },
+  {
+    "model": "store.Metadata",
+    "pk": "0905a1ad-c816-4201-a77d-c914032faf1f",
+    "fields": {
+      "catalogue_reference": "ABC/456",
+      "type": "BornDigital",
+      "metadata": {
+        "field3": "value4",
+        "description": "Another description"
+      },
+      "updated_at": "2026-05-29 14:16:10.458888+00"
+    }
+  }
+]
